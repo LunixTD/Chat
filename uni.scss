@@ -1,0 +1,129 @@
+@use 'sass:math';
+// 块级主题色
+$ThemeColor: rgb(49, 51, 56);
+$ThemePrimaryColor: rgb(88, 101, 242);
+$ThemePrimary1Color: rgb(148, 156, 247);
+$ThemeLightColor: rgb(56, 58, 67);
+$ThemeDark1Color: rgb(40, 42, 46);
+$ThemeDark2Color: rgb(30, 31, 34);
+$ThemeDark3Color: rgb(28, 29, 35);
+$ThemeDark4Color: rgb(19, 19, 24);
+$ThemeDark5Color: rgb(16, 17, 20);
+$ThemeDarkPop: rgb(38, 38, 46);
+
+// 文字主题色
+$FontWhite: rgb(221, 222, 225);
+$FontGrey: rgb(147, 149, 161);
+$FontBlue: rgb(0, 178, 255);
+
+// tabbar颜色
+$TabbarSelectedColor: rgb(243, 243, 244);
+$TabbarColor: rgb(121, 123, 130);
+$TabbarBgColor: rgb(44, 45, 53);
+
+// tabbar高度
+$TabbarHeight: 110rpx;
+
+// 聊天输入框最大高度
+$ChatInputMaxHeight: 324rpx;
+
+// 图标颜色
+$IconWhite: rgb(199, 200, 206);
+
+page {
+	font-family: 'sans-serif';
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	user-select: none;
+	overscroll-behavior: none;
+	-webkit-overflow-scrolling: touch;
+	color: $FontWhite;
+}
+view {
+	font-family: 'sans-serif';
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	user-select: none;
+}
+
+page,
+block,
+view,
+scroll-view,
+swiper,
+movable-view,
+icon,
+text,
+progress,
+button,
+checkbox,
+form,
+input,
+label,
+picker,
+picker-view,
+radio,
+slider,
+switch,
+textarea,
+navigator,
+audio,
+image,
+video,
+map,
+canvas,
+contact-button,
+cover-image,
+cover-view {
+	box-sizing: border-box;
+}
+
+@mixin centering {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+}
+
+// 只适配2x
+@media (-webkit-min-device-pixel-ratio: 2), (min-device-pixel-ratio: 2) {
+	.height-1px {
+		transform: scaleY(0.4);
+		transform-origin: 50%;
+	}
+}
+@media (-webkit-min-device-pixel-ratio: 2), (min-device-pixel-ratio: 2) {
+	.border-1px {
+		// &:after
+	}
+}
+uni-page-head {
+	height: 88rpx;
+	.uni-page-head {
+		height: 88rpx;
+	}
+	.uni-page-head-bd {
+		height: calc(88rpx - 14px);
+		.uni-page-head__title {
+			height: calc(88rpx - 14px);
+			line-height: calc(88rpx - 14px);
+		}
+	}
+}
+
+.uni-page-head-btn {
+	.uni-btn-icon {
+		margin-left: 12rpx;
+		text-align: center;
+	}
+}
+
+// :not(not) {
+// 	font-family: 'sans-serif';
+// 	box-sizing: border-box;
+// 	margin: 0;
+// 	padding: 0;
+// 	user-select: none;
+// }

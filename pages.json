@@ -1,0 +1,166 @@
+{
+	"pages": [{
+			"path": "pages/Index/Index",
+			"style": {
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/Login/Login",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/Register/Register",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/Main/Main",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/My/My",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/Msg/Msg",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false,
+				"app-plus": {
+					"scrollIndicator": "none"
+				}
+			}
+		},
+		{
+			"path": "pages/Notification/Notification",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/ChatRoom/ChatRoom",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "components/StatusBarBox/StatusBarBox",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/MsgDetail/MsgDetail",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false,
+				"navigationBarBackgroundColor": "#1c1d23"
+			}
+		},
+		{
+			"path": "pages/SearchFriend/SearchFriend",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false,
+				"navigationBarBackgroundColor": "#1c1d23"
+			}
+		},
+		{
+			"path": "pages/AddFriendType/AddFriendType",
+			"style": {
+				"navigationBarTitleText": "添加好友",
+				"enablePullDownRefresh": false,
+				"navigationBarBackgroundColor": "#1c1d23"
+			}
+		},
+		{
+			"path": "pages/Profile/Profile",
+			"style": {
+				"navigationBarTitleText": "个人资料",
+				"enablePullDownRefresh": false,
+				"navigationBarBackgroundColor": "#1c1d23",
+				"app-plus": {
+					"titleNView": {
+						"titleSize": "32rpx",
+						"buttons": [{
+							"text": "\ue612",
+							"fontSrc": "/static/fonts/iconfont.ttf",
+							"float": "left",
+							"fontSize": "46rpx",
+							"tag": "back"
+							// "width": "0"
+						}, {
+							"text": "保存",
+							"float": "right",
+							"fontSize": "30rpx",
+							"width": "56px",
+							"tag": "save",
+							"color": "#5865f2"
+						}]
+					}
+				}
+			}
+		},
+		{
+			"path": "pages/CropperPage/CropperPage",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false,
+				"navigationBarBackgroundColor": "#0e0e11"
+			}
+		}
+		// {
+		// 	"path": "pages/MsgDetail/MsgDetail",
+		// 	"style": {
+		// 		"navigationStyle": "custom",
+		// 		"navigationBarTitleText": "",
+		// 		"enablePullDownRefresh": false,
+		// 		"navigationBarBackgroundColor": "#1c1d23"
+		// 	}
+		// }
+	],
+	"globalStyle": {
+		// "navigationStyle": "custom",
+		// "scrollIndicator": "none",
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#313338",
+		"backgroundColor": "#313338",
+		"app-plus": {
+			"bounce": "none",
+			"titleNView": {
+				"autoBackButton": false,
+				"buttons": [{
+					// "width": "46px",
+					"text": "\ue612",
+					"fontSrc": "/static/fonts/iconfont.ttf",
+					"float": "left",
+					"fontSize": "48rpx"
+				}]
+			}
+		}
+	},
+	"uniIdRouter": {}
+}

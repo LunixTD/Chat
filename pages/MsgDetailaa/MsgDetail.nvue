@@ -1,0 +1,141 @@
+<template>
+	<view class="msgDetail-container">
+		<Header class="header" backto="Msg">
+			<template #left>
+				<view class="content-left">
+					<view class="avatarBox flex">
+						<image src="../../static/avatar/1.jpg" mode="widthFix" class="avatar"></image>
+						<text class="nickname">tudou</text>
+					</view>
+				</view>
+			</template>
+			<template #right>
+				<view class="content-right">
+					<view class="rightBox flex">
+						<view class="btnBox"><i class="iconfont icon-dianhua"></i></view>
+						<view class="btnBox"><i class="iconfont icon-shipin"></i></view>
+					</view>
+				</view>
+			</template>
+		</Header>
+		<StatusBarBox></StatusBarBox>
+		<HeaderBox></HeaderBox>
+		<MsgListContainer class="msg-container">
+			<UserInfo></UserInfo>
+			<MsgTimeline></MsgTimeline>
+			<MsgListItem v-for="item in msgList" :key="item" :item="item"></MsgListItem>
+		</MsgListContainer>
+		<!-- <scroll-view scroll-y="true" class="msg-container">
+			<UserInfo></UserInfo>
+			<MsgTimeline></MsgTimeline>
+			<MsgListItem v-for="item in msgList" :key="item" :item="item"></MsgListItem>
+		</scroll-view> -->
+		<MsgBottomBox :text="text" @updateText="updateText"></MsgBottomBox>
+	</view>
+</template>
+
+<script setup>
+import UserInfo from './UserInfo.vue';
+import MsgTimeline from './MsgTimeline.vue';
+import MsgListItem from './MsgListItem.vue';
+import MsgBottomBox from './MsgBottomBox.vue';
+import MsgListContainer from './MsgListContainer.vue';
+import { ref, reactive, computed } from 'vue';
+import { useStore } from 'vuex';
+
+// 接收emit自定义事件
+const text = ref('');
+function updateText(val) {
+	text.value = val;
+}
+
+const store = useStore();
+// const { msgList } = store.state.chat.msgList;
+const msgList = computed(() => {
+	return store.state.chat.msgList;
+});
+
+console.log(msgList);
+</script>
+
+<style lang="scss">
+.msgDetail-container {
+	width: 100vw;
+	height: 100vh;
+	// overflow: hidden;
+	@include centering;
+	flex-direction: column;
+}
+.flex {
+	height: 100%;
+	@include centering;
+	justify-content: space-between;
+}
+
+.btnBox {
+	width: 60rpx;
+	height: 60rpx;
+	border-radius: 50%;
+	background-color: $ThemeDark1Color;
+	@include centering;
+
+	& .iconfont {
+		transition: all ease 0.3s;
+	}
+
+	& .hide {
+		opacity: 0;
+		// display: none;
+	}
+	& .show {
+		opacity: 1;
+		// display: block;
+	}
+}
+
+.iconfont {
+	color: $IconWhite;
+	text-align: center;
+}
+
+.header {
+	background-color: $ThemeDark3Color;
+	z-index: 99;
+
+	.content-left {
+		height: 100%;
+
+		.avatarBox {
+			.avatar {
+				width: 60rpx;
+				height: 60rpx;
+				border-radius: 50%;
+				margin-right: 20rpx;
+			}
+			.nickname {
+				color: $FontWhite;
+				font-size: 32rpx;
+			}
+		}
+	}
+	.content-right {
+		height: 100%;
+		margin-left: auto;
+
+		.btnBox {
+			margin-right: 20rpx;
+		}
+	}
+}
+
+.msg-container {
+	flex: 1;
+	// box-sizing: border-box;
+	width: 100vw;
+	height: calc(100vh - 188rpx);
+	// padding: 0 20rpx;
+	// height: 100vh;
+	background-color: $ThemeDark3Color;
+	font-size: 32rpx;
+}
+</style>
