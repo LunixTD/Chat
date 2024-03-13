@@ -2,6 +2,7 @@
 	"pages": [{
 			"path": "pages/Index/Index",
 			"style": {
+				"disableScroll": true,
 				"navigationStyle": "custom",
 				"enablePullDownRefresh": false
 			}
@@ -9,6 +10,8 @@
 		{
 			"path": "pages/Login/Login",
 			"style": {
+				"disableScroll": true,
+				"navigationStyle": "custom",
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false
 			}
@@ -16,6 +19,8 @@
 		{
 			"path": "pages/Register/Register",
 			"style": {
+				"disableScroll": true,
+				"navigationStyle": "custom",
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false
 			}
@@ -31,6 +36,7 @@
 		{
 			"path": "pages/My/My",
 			"style": {
+				"disableScroll": true,
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false
@@ -39,6 +45,7 @@
 		{
 			"path": "pages/Msg/Msg",
 			"style": {
+				"disableScroll": true,
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false,
@@ -50,6 +57,7 @@
 		{
 			"path": "pages/Notification/Notification",
 			"style": {
+				"disableScroll": true,
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false
@@ -58,6 +66,7 @@
 		{
 			"path": "pages/ChatRoom/ChatRoom",
 			"style": {
+				"disableScroll": true,
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false
@@ -73,6 +82,7 @@
 		{
 			"path": "pages/MsgDetail/MsgDetail",
 			"style": {
+				"disableScroll": true,
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false,
@@ -82,6 +92,7 @@
 		{
 			"path": "pages/SearchFriend/SearchFriend",
 			"style": {
+				"disableScroll": true,
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false,
 				"navigationBarBackgroundColor": "#1c1d23"
@@ -90,6 +101,7 @@
 		{
 			"path": "pages/AddFriendType/AddFriendType",
 			"style": {
+				"disableScroll": true,
 				"navigationBarTitleText": "添加好友",
 				"enablePullDownRefresh": false,
 				"navigationBarBackgroundColor": "#1c1d23"
@@ -98,37 +110,50 @@
 		{
 			"path": "pages/Profile/Profile",
 			"style": {
-				"navigationBarTitleText": "个人资料",
+				"disableScroll": true,
+				"navigationStyle": "custom",
+				// "navigationBarTitleText": "个人资料",
 				"enablePullDownRefresh": false,
-				"navigationBarBackgroundColor": "#1c1d23",
-				"app-plus": {
-					"titleNView": {
-						"titleSize": "32rpx",
-						"buttons": [{
-							"text": "\ue612",
-							"fontSrc": "/static/fonts/iconfont.ttf",
-							"float": "left",
-							"fontSize": "46rpx",
-							"tag": "back"
-							// "width": "0"
-						}, {
-							"text": "保存",
-							"float": "right",
-							"fontSize": "30rpx",
-							"width": "56px",
-							"tag": "save",
-							"color": "#5865f2"
-						}]
-					}
-				}
+				"navigationBarBackgroundColor": "#1c1d23"
+				// "app-plus": {
+				// 	"titleNView": {
+				// 		"titleSize": "32rpx",
+				// 		"buttons": [{
+				// 			"text": "\ue612",
+				// 			"fontSrc": "/static/fonts/iconfont.ttf",
+				// 			"float": "left",
+				// 			"fontSize": "46rpx",
+				// 			"tag": "back"
+				// 			// "width": "0"
+				// 		}, {
+				// 			"text": "保存",
+				// 			"float": "right",
+				// 			"fontSize": "30rpx",
+				// 			"width": "56px",
+				// 			"tag": "save",
+				// 			"color": "#5865f2"
+				// 		}]
+				// 	}
+				// }
 			}
 		},
 		{
-			"path": "pages/CropperPage/CropperPage",
+			"path": "pages/AddServer/AddServer",
 			"style": {
+				"disableScroll": true,
+				"navigationStyle": "custom",
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false,
-				"navigationBarBackgroundColor": "#0e0e11"
+				"navigationBarBackgroundColor": "#1c1d23"
+			}
+		},
+		{
+			"path": "pages/InitUserInfo/InitUserInfo",
+			"style": {
+				"disableScroll": true,
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
 			}
 		}
 		// {
@@ -148,6 +173,8 @@
 		"navigationBarTitleText": "uni-app",
 		"navigationBarBackgroundColor": "#313338",
 		"backgroundColor": "#313338",
+		"backgroundColorTop": "#1c1d23",
+		"backgroundColorBottom": "#1c1d23",
 		"app-plus": {
 			"bounce": "none",
 			"titleNView": {

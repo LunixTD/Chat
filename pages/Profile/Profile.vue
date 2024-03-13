@@ -1,18 +1,28 @@
 <template>
 	<view class="profile-container">
+		<MyPopup ref="pop"></MyPopup>
+		<Header :customStyle="customStyle">
+			<template #middle>
+				<view class="headerMiddle">个人资料修改</view>
+			</template>
+			<template #right>
+				<text class="headerRight" @click="saveProfile">保存</text>
+			</template>
+		</Header>
+		<HeaderPlaced></HeaderPlaced>
 		<view class="my-bg">
-			<view class="cfgBtn">
+			<view class="cfgBtn" @click="chooseBgImg">
 				<i class="iconfont icon-bianji"></i>
 			</view>
 			<view class="bg">
-				<!-- <image src="" mode=""></image> -->
+				<image class="bgImg" :src="bgSrc" mode="widthFix"></image>
 			</view>
-			<view class="avatarBox">
-				<image class="my-avatar" src="../../static/avatar/05.jpg" mode="widthFix"></image>
+			<view class="avatarBox" @click="chooseAvatarImg">
+				<image class="my-avatar" :src="avatarSrc" mode="widthFix"></image>
 				<view class="iconBox">
 					<i class="iconfont" :class="'icon-ustate-' + uState"></i>
 				</view>
-				<view class="iconBox edit" @click="editorAvatar">
+				<view class="iconBox edit">
 					<i class="iconfont icon-bianji"></i>
 				</view>
 			</view>
@@ -20,31 +30,41 @@
 		<view class="uinfoBox">
 			<view class="uinfo-editor">
 				<view class="uname">
-					<text class="text">tudou</text>
+					<text class="text">{{ profile.nickname }}</text>
 				</view>
 				<view class="editItem">
 					<text class="iteminfo">昵称</text>
 					<view class="inputBox">
-						<input class="iteminput" type="text" v-model="nickname" placeholder="写个昵称?" maxlength="40" />
-						<i class="iconfont icon-error" v-if="nickname" @click="clearNickname"></i>
+						<MyInput placeholder="写个昵称?" v-model="nickname" :clearIconStyle="true"></MyInput>
 					</view>
 				</view>
 				<view class="editItem">
 					<text class="iteminfo">个人介绍</text>
 					<view class="inputBox">
-						<textarea class="itemtextarea" placeholder="在这里写下自我介绍~" maxlength="180" @input="textareaInput" />
+						<textarea class="itemtextarea" :value="profileStr" placeholder="在这里写下自我介绍~" maxlength="180" @input="textareaInput" />
 						<text class="lastletter">{{ lastNum }}</text>
 					</view>
 				</view>
 			</view>
 		</view>
 	</view>
+	<view class="cropper" :class="bgCropperState ? 'show' : 'hide'">
+		<ksp-cropper mode="fixed" :width="750" :height="300" :maxWidth="1024" :maxHeight="1024" :url="bgUrl" @cancel="bgCancelCrop" @ok="bgImgCropEnd"></ksp-cropper>
+	</view>
+	<view class="cropper" :class="avatarCropperState ? 'show' : 'hide'">
+		<ksp-cropper mode="fixed" :width="200" :height="200" :maxWidth="1024" :maxHeight="1024" :url="avatarUrl" @cancel="avatarCancelCrop" @ok="avatarImgCropEnd"></ksp-cropper>
+	</view>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, getCurrentInstance, watch } from 'vue';
+import { useStore } from 'vuex';
 import { onNavigationBarButtonTap } from '@dcloudio/uni-app';
 import ListBox from '../My/ListBox.vue';
+import { useCopper } from '@/utils/hooks/useCropper.js';
+import variable from '@/styles/variable.js';
+import api from '@/services/request.js';
+
 onNavigationBarButtonTap((e) => {
 	switch (e.tag) {
 		case 'back':
@@ -55,30 +75,135 @@ onNavigationBarButtonTap((e) => {
 			break;
 	}
 });
+
+const customStyle = {
+	backgroundColor: variable.ThemeDark3Color
+};
+
+const store = useStore();
 const uState = ref('stealth');
-const nickname = ref('tudou');
-const lastNum = ref(180);
+const nickname = ref('');
+const profileStr = ref('');
 
-function editorAvatar() {
-	uni.navigateTo({
-		url: '/pages/CropperPage/CropperPage'
-	});
-}
+const profile = computed(() => {
+	nickname.value = store.state.user.profile.nickname;
+	profileStr.value = store.state.user.profile.profileStr;
+	return store.state.user.profile;
+});
 
-function clearNickname() {
-	nickname.value = '';
-}
+// 设置背景图
+const {
+	url: bgUrl,
+	imgInfo: bgImgInfo,
+	cropedImg: cropedBg,
+	cropperState: bgCropperState,
+	chooseImage: chooseBgImg,
+	cancelCrop: bgCancelCrop,
+	imgCropEnd: bgImgCropEnd
+} = useCopper();
+
+// 头像裁剪相关变量
+const {
+	url: avatarUrl,
+	imgInfo: avatarImgInfo,
+	cropedImg: cropedAvatar,
+	cropperState: avatarCropperState,
+	chooseImage: chooseAvatarImg,
+	cancelCrop: avatarCancelCrop,
+	imgCropEnd: avatarImgCropEnd
+} = useCopper();
+
+const bgSrc = computed(() => {
+	let src = '';
+	if (cropedBg.value != '') {
+		src = cropedBg.value;
+	} else {
+		src = profile.value.profileBgInfo !== undefined ? api.target_url + profile.value.profileBgInfo.url : '/static/bg/searchFriend.png';
+	}
+	return src;
+});
+
+const avatarSrc = computed(() => {
+	let src = '';
+	if (cropedAvatar.value != '') {
+		src = cropedAvatar.value;
+	} else {
+		src = profile.value.avatarInfo !== undefined ? api.target_url + profile.value.avatarInfo.thumb : '/static/avatar/placed.jpeg';
+	}
+	return src;
+});
 
 function textareaInput(e) {
-	lastNum.value = 180 - e.detail.value.length;
+	profileStr.value = e.detail.value;
+}
+
+const lastNum = ref(180);
+watch(profileStr, (newVal) => {
+	if (newVal !== undefined) {
+		lastNum.value = 180 - newVal.length;
+	}
+});
+
+const pop = ref(null);
+const instance = getCurrentInstance();
+
+// 保存信息修改
+async function saveProfile() {
+	const profile = uni.getStorageSync('profile');
+	// console.log(nickname.value);
+	// console.log(profile);
+	if (profile._id !== undefined) {
+		let tmpData = {};
+		if (bgImgInfo.value != null) {
+			tmpData.profileBgInfo = bgImgInfo.value;
+		}
+		if (avatarImgInfo.value != null) {
+			tmpData.avatarInfo = avatarImgInfo.value;
+		}
+		if (nickname.value != profile.nickname) {
+			tmpData.nickname = nickname.value;
+		}
+		if (profileStr.value != profile.profileStr) {
+			tmpData.profileStr = profileStr.value;
+		}
+		// console.log(tmpData);
+		const updateRes = await api.asyncUserProfile({
+			id: profile._id,
+			data: tmpData
+		});
+		if (updateRes.statusCode == 200) {
+			console.log('个人资料修改成功!');
+			instance.refs.pop.showPop('资料修改成功!!');
+			// console.log(updateRes.data);
+			uni.setStorageSync('profile', updateRes.data);
+			store.dispatch('user/changeProfile', updateRes.data);
+			setTimeout(() => {
+				uni.navigateBack();
+			}, 3500);
+		}
+	} else {
+		console.log('没有本地用户数据，无法更新数据！');
+	}
 }
 </script>
 
 <style lang="scss">
+page {
+	min-height: 100vh;
+	background-color: $ThemeDark3Color;
+}
 .profile-container {
 	width: 100vw;
-	height: 100%;
-	background-color: $ThemeDark3Color;
+	padding-bottom: 30rpx;
+	.headerMiddle {
+		@include centering;
+		height: 100%;
+	}
+	.headerRight {
+		// width: 88rpx;
+		padding: 0 30rpx;
+	}
+
 	.my-bg {
 		position: relative;
 		width: 100vw;
@@ -94,7 +219,8 @@ function textareaInput(e) {
 			line-height: 70rpx;
 			text-align: center;
 			border-radius: 50%;
-			background-color: rgba(0, 0, 0, 0.7);
+			background-color: rgba($ThemeDark3Color, 0.8);
+			z-index: 20;
 			.iconfont {
 				display: block;
 				font-size: 38rpx;
@@ -104,7 +230,12 @@ function textareaInput(e) {
 		.bg {
 			width: 100%;
 			height: 300rpx;
-			background-color: lightcoral;
+			// background-color: lightcoral;
+			overflow: hidden;
+			z-index: 10;
+			.bgImg {
+				width: 100%;
+			}
 		}
 		.avatarBox {
 			position: absolute;
@@ -114,11 +245,13 @@ function textareaInput(e) {
 			height: 180rpx;
 			border: 12rpx solid $ThemeDark3Color;
 			border-radius: 50%;
+			@include centering;
 
 			.my-avatar {
 				width: 100%;
 				height: 100%;
 				border-radius: 50%;
+				background-color: $ThemeDark3Color;
 			}
 
 			.iconBox {
@@ -227,6 +360,25 @@ function textareaInput(e) {
 				}
 			}
 		}
+	}
+}
+// 裁剪页面
+.cropper {
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+	z-index: -1;
+	opacity: 0;
+	transition: all ease 0.3s;
+	&.show {
+		opacity: 1;
+		z-index: 100;
+	}
+	&.hide {
+		opacity: 0;
+		z-index: -1;
 	}
 }
 </style>

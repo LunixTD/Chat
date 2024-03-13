@@ -1,3 +1,4 @@
+import api from '@/services/request.js'
 const state = {
 	currTabPage: 'ChatRoom',
 	searchType: '0',
@@ -5,7 +6,9 @@ const state = {
 	msgPageRaiseHeight: 0,
 	showContentBox: false,
 	chatroomState: 'hide',
-	canUsePushAnime: false
+	canUsePushAnime: false,
+	channelTypeStateChangeCounter: 0,
+	myPopupRef: null
 }
 
 const mutations = {
@@ -29,6 +32,25 @@ const mutations = {
 	},
 	changeCanUsePushAnime(state, bool) {
 		state.canUsePushAnime = bool
+	},
+	runTypeChangeCounter(state) {
+		state.channelTypeStateChangeCounter += 1
+		if ((state.channelTypeStateChangeCounter / 10) % 1 == 0) {
+			const profile = uni.getStorageSync('profile')
+			uni.request({
+				url: api.user_update,
+				method: "POST",
+				data: {
+					activeInfo: profile.activeInfo
+				},
+				success: (res) => {
+					console.log(res)
+				}
+			})
+		}
+	},
+	setMyPopupRef(state, ref) {
+		state.myPopupRef = ref
 	}
 }
 

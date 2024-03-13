@@ -1,5 +1,5 @@
 <template>
-	<view class="tabBarBox" :class="chatroomState == 'show' ? 'hide' : 'show'">
+	<view class="tabBarBox" :class="chatroomState == 'show' ? 'hide' : 'show'" :style="`--safebottom: ${safeAreaInsets.bottom}rpx`">
 		<view v-for="(item, index) in tabArr" :key="index" class="tab-item" :class="currTabPage == item.type ? 'active' : ''" @click="handleTabClick(item.type)">
 			<i :class="item.icon" class="iconfont"></i>
 			<text class="text">{{ item.text }}</text>
@@ -10,6 +10,8 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import { useStore } from 'vuex';
+import { useSystemInfo } from '@/utils/hooks/useSystemInfo.js';
+import variable from '@/styles/variable.js';
 
 const tabArr = reactive([
 	{
@@ -43,16 +45,27 @@ const chatroomState = computed(() => {
 function handleTabClick(type) {
 	store.dispatch('ui/changeTabPage', type);
 }
+
+const safeAreaInsets = useSystemInfo('safeAreaInsets');
+// const tabBarStyle = computed(() => {
+// 	return {
+// 		// height: `${variable.TabbarHeight + safeAreaInsets.value.bottom}rpx`,
+// 		// paddingBottom: `${safeAreaInsets.value.bottom}rpx`
+// 	};
+// });
 </script>
 
 <style lang="scss">
 .tabBarBox {
+	$SafeBottom: var(--safebottom);
 	width: 100vw;
-	height: $TabbarHeight;
+	height: calc($TabbarHeight + $SafeBottom * 1rpx);
+	padding-bottom: calc($SafeBottom * 1rpx);
 	position: fixed;
 	bottom: 0;
 	left: 0;
 	background-color: $TabbarBgColor;
+	box-shadow: 3rpx -3rpx 10rpx $ThemeDark3Color;
 	display: flex;
 	flex-direction: row;
 	justify-content: center;
@@ -61,8 +74,8 @@ function handleTabClick(type) {
 	border: none;
 	transition: all ease 0.3s;
 	&.hide {
-		transform: translateY($TabbarHeight);
-		opacity: 0;
+		transform: translateY(calc($TabbarHeight + $SafeBottom * 1rpx));
+		opacity: 1;
 	}
 
 	.tab-item {

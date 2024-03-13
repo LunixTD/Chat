@@ -7,15 +7,17 @@
 		<view class="searchList">
 			<text class="title">服务器成员</text>
 			<scroll-view scroll-y="true" class="listBox">
-				<TouchBox class="listItem" v-for="i in 2" :customStyle="listItemStyle" :touchStyle="listItemPressStyle" @click="gotoPage">
-					<view class="itemLeft">
-						<image class="itemAvatar" src="../../static/avatar/03.jpg" mode="widthFix"></image>
+				<TouchBox v-for="i in 2" :touchStartStyle="listItemStyle" :touchEndStyle="listItemPressStyle">
+					<view class="listItem" @click="gotoPage">
+						<view class="itemLeft">
+							<image class="itemAvatar" src="../../static/avatar/03.jpg" mode="widthFix"></image>
+						</view>
+						<view class="itemRight">
+							<text class="itemUname">tudou</text>
+						</view>
+						<i class="iconfont icon-back"></i>
+						<i class="border-line height-1px" v-if="i !== 2"></i>
 					</view>
-					<view class="itemRight">
-						<text class="itemUname">tudou</text>
-					</view>
-					<i class="iconfont icon-back"></i>
-					<i class="border-line height-1px" v-if="i !== 2"></i>
 				</TouchBox>
 			</scroll-view>
 		</view>
@@ -24,7 +26,7 @@
 			<text class="searchFriend-info">您还未添加任何好友哦~</text>
 			<text class="searchFriend-info line">添加好友，开始聊天、玩游戏，共享更多功能！</text>
 		</view>
-		<TouchBox class="btnBox" :customStyle="btnStyle" :touchStyle="touchStyle">
+		<TouchBox class="btnBox" :touchStartStyle="btnStyle" :touchEndStyle="touchStyle">
 			<text class="addFriend-text">添加好友</text>
 		</TouchBox> -->
 	</view>
@@ -37,7 +39,7 @@ onNavigationBarButtonTap(() => {
 	uni.navigateBack();
 });
 
-const { BtnPrimaryColor, BtnPrimaryPressColor, ThemeDark1Color, ThemeDark2Color } = varible;
+const { BtnPrimaryColor, BtnPrimaryPressColor, ThemeDarkPop, ThemeDark3Color } = varible;
 const btnStyle = {
 	backgroundColor: BtnPrimaryColor
 };
@@ -47,10 +49,10 @@ const touchStyle = {
 };
 
 const listItemStyle = {
-	backgroundColor: ThemeDark1Color
+	backgroundColor: ThemeDarkPop
 };
 const listItemPressStyle = {
-	backgroundColor: ThemeDark2Color
+	backgroundColor: ThemeDark3Color
 };
 
 function gotoPage() {
@@ -64,7 +66,7 @@ function gotoPage() {
 .container {
 	background-color: $ThemeDark3Color;
 	width: 100vw;
-	height: calc(100vh - 88rpx);
+	height: 100vh;
 	padding: 0 30rpx;
 	color: $FontGrey;
 	font-size: 27rpx;
@@ -105,7 +107,8 @@ function gotoPage() {
 		}
 		.listBox {
 			width: 100%;
-			background-color: $ThemeDark1Color;
+			// background-color: $ThemeDark1Color;
+			border: 1px solid $ThemeDarkPop;
 			border-radius: 20rpx;
 			overflow: hidden;
 
@@ -116,6 +119,7 @@ function gotoPage() {
 				@include centering;
 				justify-content: flex-start;
 				border-bottom: 1;
+				// background-color: $ThemeDarkPop;
 				.icon-back {
 					margin-right: 30rpx;
 					justify-self: flex-start;
@@ -152,7 +156,7 @@ function gotoPage() {
 					right: 0;
 					width: calc(100% - 100rpx);
 					height: 1px;
-					background-color: rgba($FontGrey, 0.1);
+					background-color: rgba($FontGrey, 0.2);
 				}
 			}
 		}

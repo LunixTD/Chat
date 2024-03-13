@@ -1,13 +1,16 @@
 <template>
 	<view class="container">
+		<MyPopup ref="pop"></MyPopup>
+		<Header :touchStartStyle="customStyle"></Header>
+		<HeaderPlaced></HeaderPlaced>
 		<view class="title">
-			<text class="text1">欢迎回来！</text>
-			<text class="text2">很高兴再次见到您！</text>
+			<text class="text1">欢迎回来</text>
+			<text class="text2">很高兴再次见到您!</text>
 		</view>
 		<view class="userinfo">
 			<text class="text">账户信息</text>
-			<input class="input" type="text" placeholder="电子邮箱地址或电话号码" v-model="username" />
-			<input class="input" type="text" password placeholder="密码" v-model="pwd" />
+			<MyInput placeholder="电子邮箱地址或电话号码" maxlength="256" type="text" v-model="username" :inputStyle="inputStyle"></MyInput>
+			<MyInput placeholder="密码" v-model="pwd" maxlength="18" type="password" :inputStyle="inputStyle"></MyInput>
 			<text class="text findpwd">忘记密码?</text>
 		</view>
 		<view class="btn_login" @click="handleLogin">登录</view>
@@ -15,39 +18,120 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, getCurrentInstance, nextTick, computed } from 'vue';
 import { onNavigationBarButtonTap } from '@dcloudio/uni-app';
+import { useStore } from 'vuex';
+import varible from '@/styles/variable.js';
+import api from '@/services/request.js';
+
+const { ThemeDark1Color, ThemeDark3Color, ThemeDark5Color, ThemeDarkPop, BtnPrimaryColor, BtnPrimaryPressColor } = varible;
+const store = useStore();
+
+const customStyle = computed(() => {
+	return {
+		backgroundColor: 'transparent'
+	};
+});
+
 const username = ref('');
 const pwd = ref('');
-function handleLogin() {
-	// if (username.value == 'admin' && pwd.value == '123') {
-	// 	uni.reLaunch({
-	// 		url:'/pages/Msg/Msg',
-	// 		animationType:'slide-in-bottom'
-	// 	})
-	// }
-	uni.reLaunch({
-		url: '/pages/Main/Main',
-		animationType: 'slide-in-bottom'
-	});
+const pop = ref(null);
+const instance = getCurrentInstance();
+async function handleLogin() {
+	const emailRegex = /^\w{3,}(\.\w+)*@[A-z0-9]+(\.[A-z]{2,5}){1,2}$/;
+	const phoneRegex = /^1(3\d|4[5-9]|5[0-35-9]|6[567]|7[0-8]|8\d|9[0-35-9])\d{8}$/;
+	let usernameState = false;
+	let utype = '';
+	let alertMsg = '';
+	if (username.value.indexOf('@') > -1) {
+		usernameState = emailRegex.test(username.value);
+		alertMsg = '邮箱格式错误!';
+		utype = 'email';
+	} else {
+		usernameState = phoneRegex.test(username.value);
+		alertMsg = '手机号码错误!';
+		utype = 'phone';
+	}
+	if (!usernameState) {
+		showAlert(alertMsg);
+	} else {
+		// 登录请求
+		const loginRes = await api.login({
+			[utype]: username.value,
+			password: pwd.value
+		});
+		const { profile, code, token } = loginRes.data;
+
+		// console.log(loginRes);
+		if (code == 400) {
+			showAlert('用户名或密码错误!');
+		} else {
+			// 登录成功进行初始化操作
+
+			// 检查用户是否有初始化用户名,有则直接进入主界面,没有则去到用户初始化设置页面
+			if (profile.nickname == undefined) {
+				store.dispatch('user/setToken', token);
+				uni.setStorageSync('profile', profile);
+				store.dispatch('user/changeProfile', profile);
+				// 将token传到下一个页面,初始化配置完成后再将token配置到本地缓存中
+				// 用户在配置界面中断后可以通过判断token是否有值来决定重新进入应用后是否再次进入配置页面
+				uni.navigateTo({
+					url: `/pages/InitUserInfo/InitUserInfo`,
+					animationType: 'slide-in-bottom'
+				});
+			} else {
+				uni.setStorageSync('token', token);
+				uni.setStorageSync('profile', profile);
+				store.dispatch('user/changeProfile', profile);
+				// store.dispatch('message/connectSocket', 111);
+				uni.navigateTo({
+					url: '/pages/Main/Main',
+					animationType: 'slide-in-bottom'
+				});
+			}
+		}
+	}
+}
+
+function showAlert(msg) {
+	instance.refs.pop.showPop(msg);
 }
 
 onNavigationBarButtonTap(() => {
 	uni.navigateBack();
 });
+
+// 输入框样式
+const inputStyle = {
+	backgroundColor: ThemeDark3Color,
+	borderRadius: '6rpx',
+	height: '90rpx',
+	fontSize: '26rpx',
+	margin: '20rpx 0'
+};
+
+// const clearIconStyle = {
+// 	width: '90rpx',
+// 	height: '90rpx',
+// 	lineHeight: '90rpx',
+// 	fontSize: '36rpx'
+// };
 </script>
 
 <style lang="scss">
 .container {
-	display: flex;
+	width: 100vw;
+	height: 100vh;
+	@include centering;
 	flex-direction: column;
 	justify-content: flex-start;
-	align-items: center;
+	background-color: $ThemeColor;
 }
 .title {
 	color: white;
 	text-align: center;
-	overflow: hidden;
+	width: 100vw;
+	// overflow: hidden;
 
 	.text1 {
 		display: block;
@@ -64,20 +148,15 @@ onNavigationBarButtonTap(() => {
 		font-weight: 100;
 		color: $FontGrey;
 		text-align: center;
-		margin-left: -14rpx;
 	}
 }
 .userinfo {
 	width: 94vw;
 	margin: 0 3vw;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
 
 	.text {
 		color: $FontGrey;
-		font-size: 12px;
+		font-size: 24rpx;
 		align-self: flex-start;
 		margin-bottom: 8rpx;
 	}
@@ -85,7 +164,7 @@ onNavigationBarButtonTap(() => {
 		width: 94vw;
 		height: 80rpx;
 		color: white;
-		background-color: $ThemeDark2Color;
+		background-color: $ThemeDark5Color;
 		margin: 8rpx 0;
 		border-radius: 3px;
 		text-indent: 20rpx;
@@ -99,13 +178,13 @@ onNavigationBarButtonTap(() => {
 }
 .btn_login {
 	width: 94vw;
-	height: 74rpx;
-	line-height: 74rpx;
-	border-radius: 3px;
+	height: 84rpx;
+	line-height: 84rpx;
+	border-radius: 6rpx;
 	color: white;
 	background-color: $ThemePrimaryColor;
-	font-size: 13px;
+	font-size: 26rpx;
 	text-align: center;
-	margin: 20rpx 0;
+	margin: 30rpx 0;
 }
 </style>

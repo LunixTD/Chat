@@ -1,13 +1,16 @@
 <template>
-	<view class="statusBarBox"></view>
+	<view class="statusBarBox" :style="statusBarBoxStyle"></view>
 </template>
 
-<script></script>
+<script setup>
+import { useStatusBarHeightStyle } from '@/utils/hooks/useStatusBarHeightStyle.js';
+const statusBarBoxStyle = useStatusBarHeightStyle();
+// console.log(statusBarBoxStyle.value);
+</script>
 
 <style lang="scss">
 .statusBarBox {
 	width: 100vw;
-	height: var(--status-bar-height);
-	background-color: green;
+	background-color: red;
 }
 </style>

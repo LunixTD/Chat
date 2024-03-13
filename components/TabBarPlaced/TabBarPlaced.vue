@@ -7,7 +7,8 @@
 <style lang="scss">
 .tabbarPlaced {
 	width: 100vw;
-	height: $TabbarHeight;
+	height: calc(#{$TabbarHeight} + constant(safe-area-inset-bottom));
+	height: calc(#{$TabbarHeight} + env(safe-area-inset-bottom));
 	// background-color: red;
 }
 </style>

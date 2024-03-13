@@ -6,10 +6,10 @@
 				<i class="iconfont icon-shezhi"></i>
 			</view>
 			<view class="bg">
-				<!-- <image src="" mode=""></image> -->
+				<image class="bgImg" :src="bgSrc" mode="widthFix"></image>
 			</view>
 			<view class="avatarBox">
-				<image class="my-avatar" src="../../static/avatar/05.jpg" mode="widthFix"></image>
+				<image class="my-avatar" :src="avatarSrc" mode="widthFix"></image>
 				<view class="iconBox">
 					<i class="iconfont" :class="'icon-ustate-' + uState"></i>
 				</view>
@@ -19,60 +19,100 @@
 			<ListBox>
 				<view class="my-curr-state">
 					<view class="nickname">
-						<text class="nickname">tudou</text>
+						<text class="nickname">{{ profile.nickname }}</text>
 						<i class="iconfont icon-back"></i>
 					</view>
 					<view class="curr-state">
 						<text class="state-text">目前状态</text>
 					</view>
 					<view class="curr-state-setter">
-						<TouchBox class="btnBox" :customStyle="btnStyle" :touchStyle="btnPressStyle">
-							<i class="iconfont icon-zhuangtai"></i>
-							<text>添加状态</text>
-						</TouchBox>
-						<TouchBox class="btnBox" :customStyle="btnStyle" :touchStyle="btnPressStyle" @click="gotoPage('Profile')">
-							<i class="iconfont icon-bianji"></i>
-							<text>编辑个人资料</text>
-						</TouchBox>
+						<view class="btnBox">
+							<TouchBox :customStyle="customStyle" :touchStartStyle="btnStyle" :touchEndStyle="btnPressStyle">
+								<i class="iconfont icon-zhuangtai"></i>
+								<text>添加状态</text>
+							</TouchBox>
+						</view>
+						<view class="btnBox" @click="gotoPage('Profile')">
+							<TouchBox :customStyle="customStyle" :touchStartStyle="btnStyle" :touchEndStyle="btnPressStyle">
+								<i class="iconfont icon-bianji"></i>
+								<text>编辑个人资料</text>
+							</TouchBox>
+						</view>
 					</view>
 				</view>
 			</ListBox>
 			<ListBox>
 				<view class="profileBox">
 					<view class="profile-info">
-						<view class="info-left">
-							<text class="info">添加个人简介</text>
-							<text class="info">你喜欢什么?游戏、音乐、电视剧还是电影?向大家介绍一下自己吧!</text>
+						<view v-if="profile.profileStr == ''">
+							<view class="info-left">
+								<text class="info">添加个人简介</text>
+								<text class="info">你喜欢什么?游戏、音乐、电视剧还是电影?向大家介绍一下自己吧!</text>
+							</view>
+							<view class="info-right">
+								<image class="none-img" src="../../static/bg/profile-img.png" mode="widthFix"></image>
+							</view>
 						</view>
-						<view class="info-right">
-							<image class="none-img" src="../../static/bg/profile-img.png" mode="widthFix"></image>
+						<view v-if="profile.profileStr != ''">
+							<view class="infoBox">
+								<text class="info">个人简介</text>
+								<text class="info str">{{ profile.profileStr }}</text>
+							</view>
 						</view>
 					</view>
-					<TouchBox class="btnBox" :customStyle="btnStyle" :touchStyle="btnPressStyle"><text>开始</text></TouchBox>
+					<view class="btnBox" v-if="profile.profileStr == ''">
+						<TouchBox :customStyle="customStyle" :touchStartStyle="btnStyle" :touchEndStyle="btnPressStyle">
+							<text>开始</text>
+						</TouchBox>
+					</view>
 				</view>
 			</ListBox>
 			<ListBox>
 				<view class="create-date">
 					<text class="info">成员注册时间</text>
-					<text class="date">2018年6月13号</text>
+					<text class="date">{{ getCreateDate }}</text>
 				</view>
 			</ListBox>
-			<ListBox goto="SearchFriend" @click="gotoPage('SearchFriend')">
-				<view class="my-friends">
-					<text>您的好友</text>
-				</view>
-			</ListBox>
+			<view @click="gotoPage('SearchFriend')">
+				<ListBox goto="SearchFriend">
+					<view class="my-friends">
+						<text>您的好友</text>
+					</view>
+				</ListBox>
+			</view>
 		</view>
 		<TabBarPlaced></TabBarPlaced>
 	</scroll-view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import BtnBox from './BtnBox.vue';
-import ListBox from './ListBox.vue';
+import { ref, computed } from 'vue';
+import { useStore } from 'vuex';
+import api from '@/services/request.js';
+
+const store = useStore();
+
+const profile = computed(() => {
+	// console.log(store.state.user.profile);
+	return store.state.user.profile;
+});
+const avatarSrc = computed(() => {
+	return profile.value.avatarInfo !== undefined ? api.target_url + profile.value.avatarInfo.thumb : '/static/avatar/placed.jpeg';
+});
+const bgSrc = computed(() => {
+	return profile.value.profileBgInfo !== undefined ? api.target_url + profile.value.profileBgInfo.url : '/static/bg/searchFriend.png';
+});
+
 const uState = ref('stealth');
 
+const customStyle = {
+	height: '80rpx',
+	lineHeight: '40rpx',
+	borderRadius: '40rpx',
+	// marginTop: '30rpx'
+	padding: '20rpx 30rpx',
+	textAlign: 'center'
+};
 const btnStyle = {
 	backgroundColor: 'rgb(56, 58, 67, 1)'
 };
@@ -87,6 +127,15 @@ function gotoPage(page) {
 		animationType: 'pop-in'
 	});
 }
+
+const getCreateDate = computed(() => {
+	// console.log(profile);
+	const createDate = new Date(profile.value.createTime);
+	let year = createDate.getFullYear();
+	let month = createDate.getMonth() + 1;
+	let day = createDate.getDate();
+	return `${year}年 ${month}月${day}日`;
+});
 </script>
 
 <style lang="scss">
@@ -110,7 +159,8 @@ function gotoPage(page) {
 			line-height: 70rpx;
 			text-align: center;
 			border-radius: 50%;
-			background-color: rgba(0, 0, 0, 0.7);
+			background-color: rgba($ThemeDark3Color, 0.8);
+			z-index: 20;
 			.iconfont {
 				display: block;
 				font-size: 38rpx;
@@ -120,7 +170,11 @@ function gotoPage(page) {
 		.bg {
 			width: 100%;
 			height: 300rpx;
-			background-color: lightcoral;
+			// background-color: lightcoral;
+			z-index: 10;
+			.bgImg {
+				width: 100%;
+			}
 		}
 		.avatarBox {
 			position: absolute;
@@ -130,6 +184,7 @@ function gotoPage(page) {
 			height: 180rpx;
 			border: 12rpx solid $ThemeDark3Color;
 			border-radius: 50%;
+			z-index: 20;
 
 			.my-avatar {
 				width: 100%;
@@ -177,9 +232,9 @@ function gotoPage(page) {
 		.btnBox {
 			height: 80rpx;
 			line-height: 40rpx;
-			border-radius: 40rpx;
+			// border-radius: 40rpx;
 			margin-top: 30rpx;
-			padding: 20rpx 30rpx;
+			// padding: 20rpx 30rpx;
 			text-align: center;
 		}
 		// .listBox {
@@ -214,7 +269,9 @@ function gotoPage(page) {
 				@include centering;
 				justify-content: space-between;
 				.btnBox {
-					width: calc(50% - 15rpx);
+					@include centering;
+					width: calc(50vw - 75rpx);
+					// flex: 1;
 					.iconfont {
 						font-size: 30rpx;
 						margin-right: 10rpx;
@@ -228,13 +285,16 @@ function gotoPage(page) {
 			.profile-info {
 				@include centering;
 				align-items: flex-start;
-
-				.info-left {
-					.info {
-						display: block;
-						font-size: 26rpx;
-						color: $FontGrey;
-						margin-bottom: 20rpx;
+				.info {
+					display: block;
+					font-size: 26rpx;
+					color: $FontGrey;
+					margin-bottom: 20rpx;
+				}
+				.infoBox {
+					.str {
+						color: $FontWhite;
+						margin-bottom: 0;
 					}
 				}
 				.info-right {

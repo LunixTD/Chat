@@ -2,7 +2,7 @@
 	<view class="container">
 		<StatusBarBox></StatusBarBox>
 		<view class="titleBoxPlace"></view>
-		<view class="titleBox" :class="isSearching ? 'searching' : ''">
+		<view class="titleBox" :style="titleBoxStyle" :class="isSearching ? 'searching' : ''">
 			<text>消息</text>
 			<view class="titleRightBox">
 				<view class="friendme friend">
@@ -16,7 +16,7 @@
 			</view>
 		</view>
 		<!-- 搜索框 -->
-		<view class="searchBox" :class="[isSearching ? 'searching' : '']">
+		<view class="searchBox" :style="searchBoxStyle" :class="[isSearching ? 'searching' : '']">
 			<i class="iconfont icon-back2 iconhide" @click="searchState(false)"></i>
 			<view class="searchInput">
 				<i class="iconfont icon-search"></i>
@@ -25,11 +25,11 @@
 			<i class="iconfont icon-server-conf iconhide"></i>
 		</view>
 		<!-- 消息列表 -->
-		<scroll-view scroll-y="true" class="msg-content" :class="isSearching ? 'hide' : ''" @scroll="onMsglistScroll">
+		<scroll-view scroll-y="true" class="msgContent" :style="msgContentStyle" :class="isSearching ? 'hide' : ''" @scroll="onMsglistScroll">
 			<view class="searchBoxPlaced"></view>
 			<!-- 近期频繁沟通用户 -->
-			<scroll-view scroll-x="true" class="hotfriend" show-scrollbar="false">
-				<view class="frindItemBox" v-for="item in hotFriends" :key="item">
+			<scroll-view scroll-x="true" class="recentFriend" show-scrollbar="false">
+				<view class="frindItemBox" v-for="item in recentFriends" :key="item">
 					<view class="avatarBox">
 						<image :src="'../../static/avatar/' + item + '.jpg'" mode="widthFix" class="avatar"></image>
 						<i class="dot"></i>
@@ -91,9 +91,11 @@ import { onHide } from '@dcloudio/uni-app';
 import { useStore } from 'vuex';
 import { touchFeedback } from '@/utils/tools.js';
 import { debounce, throttle } from 'lodash';
+import { useSystemInfo } from '@/utils/hooks/useSystemInfo.js';
+import variable from '@/styles/variable.js';
 
 const isSearching = ref(false);
-const hotFriends = [1, 2, 3, 4, 5, 1, 2, 3, 4, 5];
+const recentFriends = [1, 2, 3, 4, 5, 1, 2, 3, 4, 5];
 const filterType = [
 	{
 		type: 'recent',
@@ -127,6 +129,27 @@ const searchType = computed(() => {
 const currTabPage = computed(() => {
 	return store.state.ui.currTabPage;
 });
+
+// 顶部根据状态栏定位的位置
+const statusBarHeight = useSystemInfo('statusBarHeight');
+const safeAreaInsets = useSystemInfo('safeAreaInsets');
+const titleBoxStyle = computed(() => {
+	return {
+		top: `${statusBarHeight.value}px`
+	};
+});
+const searchBoxStyle = computed(() => {
+	return {
+		top: `${statusBarHeight.value + uni.upx2px(90)}px`
+	};
+});
+const msgContentStyle = computed(() => {
+	return {
+		height: `calc(100vh - ${statusBarHeight.value + uni.upx2px(variable.TabbarHeight + safeAreaInsets.value.bottom + 99)}px)`,
+		top: `${uni.upx2px(variable.TabbarHeight - 14) + statusBarHeight.value}px`
+	};
+});
+
 const typeItemWidth = 100;
 const searchTypeMarkLeft = computed(() => {
 	return searchType.value * typeItemWidth + 'rpx';
@@ -251,7 +274,6 @@ function gotoPage(page) {
 }
 .titleBox {
 	position: fixed;
-	top: var(--status-bar-height);
 	left: 0;
 	width: 100%;
 	height: 90rpx;
@@ -273,6 +295,9 @@ function gotoPage(page) {
 		flex-direction: row;
 		align-items: center;
 		font-size: 26rpx;
+		/* #ifdef MP-WEIXIN */
+		margin-right: 188rpx;
+		/* #endif */
 
 		.friendme {
 			margin-right: 20rpx;
@@ -386,13 +411,14 @@ function gotoPage(page) {
 		}
 	}
 }
-.msg-content {
+.msgContent {
 	position: absolute;
 	left: 0;
-	top: calc($TabbarHeight + var(--status-bar-height) - 14rpx);
+	// top: calc($TabbarHeight + var(--status-bar-height) - 14rpx);
 	width: 100vw;
-	height: calc(100vh - $TabbarHeight - var(--status-bar-height) - 99rpx);
+	// height: calc(100vh - $TabbarHeight - var(--status-bar-height) - 99rpx);
 	transition: transform ease 0.4s, opacity ease 0.4s;
+	// background-color: red;
 
 	&.hide {
 		transform: translateX(-100%);
@@ -405,9 +431,10 @@ function gotoPage(page) {
 	}
 
 	// 热点好友
-	.hotfriend {
+	.recentFriend {
 		white-space: nowrap;
 		width: 100vw;
+		height: 188rpx;
 		padding: 4rpx 40rpx 24rpx 40rpx;
 
 		.frindItemBox {

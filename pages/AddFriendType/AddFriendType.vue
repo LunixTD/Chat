@@ -1,32 +1,33 @@
 <template>
 	<view class="container">
 		<view class="addType">
-			<view class="typeItem" v-for="{ icon, text } in addType">
+			<view class="typeItem" v-for="({ icon, text }, index) in addType" :key="index">
 				<i class="iconfont" :class="'icon-addfriend-' + icon"></i>
 				<text class="type-text">{{ text }}</text>
 			</view>
 		</view>
 		<view class="byname">
 			<input class="name-input" type="text" placeholder="通过用户名添加" />
-			<TouchBox class="name-btn" :customStyle="btnStyle" :touchStyle="touchStyle">
-				<text>发送请求</text>
-			</TouchBox>
+			<view class="name-btn">
+				<view :touchStartStyle="btnStyle" :touchEndStyle="touchStyle">
+					<text>发送请求</text>
+				</view>
+			</view>
 		</view>
-		<ListBox class="byaddressList">
+		<view class="byaddressList">
 			<image class="byaddressList-img" src="../../static/bg/addfriend-bg.png" mode="widthFix"></image>
 			<text class="text1">发现您的好友</text>
 			<text class="text2">同步联系人，找到更多认识的好友~</text>
-			<TouchBox class="btnBox" :customStyle="btnStyle" :touchStyle="touchStyle">
+			<TouchBox :customStyle="customStyle" :touchStartStyle="btnStyle" :touchEndStyle="touchStyle">
 				<text class="addFriend-text">发现好友</text>
 			</TouchBox>
-		</ListBox>
+		</view>
 	</view>
 </template>
 
 <script setup>
 import { onNavigationBarButtonTap } from '@dcloudio/uni-app';
 import variable from '@/styles/variable.js';
-import ListBox from '@/pages/My/ListBox.vue';
 
 onNavigationBarButtonTap(() => {
 	uni.navigateBack();
@@ -59,6 +60,15 @@ const btnStyle = {
 const touchStyle = {
 	backgroundColor: BtnPrimaryPressColor,
 	transform: 'scale(.97)'
+};
+const customStyle = {
+	width: 'calc(100vw - 120rpx)',
+	height: '80rpx',
+	lineHeight: '40rpx',
+	borderRadius: '40rpx',
+	marginTop: '50rpx',
+	padding: '20rpx 30rpx',
+	textAlign: 'center'
 };
 </script>
 
@@ -127,6 +137,9 @@ const touchStyle = {
 	.byaddressList {
 		@include centering;
 		flex-direction: column;
+		background-color: rgba(38, 39, 47, 1);
+		padding: 30rpx 30rpx;
+		border-radius: 18rpx;
 		.byaddressList-img {
 			width: 60%;
 		}
@@ -136,15 +149,6 @@ const touchStyle = {
 		}
 		.text2 {
 			font-size: 26rpx;
-		}
-		.btnBox {
-			width: 100%;
-			height: 80rpx;
-			line-height: 40rpx;
-			border-radius: 40rpx;
-			margin-top: 50rpx;
-			padding: 20rpx 30rpx;
-			text-align: center;
 		}
 	}
 }

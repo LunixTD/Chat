@@ -1,84 +1,100 @@
+import api from '@/services/request.js'
+
 const state = {
-	currServer: '001',
-	serverList: ['001', '002', '003', '004', '005'],
-	currRoom: {
-		id: 'room01',
-		lastMsg: {
-			id: ''
-		}
-	},
-	currActiveMsg: '00001',
-	msgList: [{
-		id: '00001',
-		uid: '11111',
-		user: 'tudou',
-		date: 1708693732579,
-		msg: {
-			type: 'text',
-			voiceData: {},
-			imgData: {},
-			content: '土豆tudou1',
-		}
-	}, {
-		id: '00002',
-		uid: '22222',
-		user: 'douzi',
-		date: 1708693732579,
-		msg: {
-			type: 'voice',
-			voiceData: {},
-			imgData: {},
-			content: '土豆tudou1',
-		}
-	}, {
-		id: '00003',
-		uid: '11111',
-		user: 'tudou',
-		date: 1708693732579,
-		msg: {
-			type: 'text',
-			voiceData: {},
-			imgData: {},
-			content: '土豆土豆2',
-		}
-	}]
+	currServerId: "",
+	currServer: {},
+	serverList: [],
+	currChannel: {},
+	emojiList: []
 }
 
 const mutations = {
-	changeCurrServer(state, serverId) {
-		state.currServer = serverId
+	changeCurrServerId(state, serverId) {
+		state.currServerId = serverId
+	},
+	changeCurrServer(state, server) {
+		state.currServer = server
 	},
 	updateServerList(state, serverList) {
-		state.serverList = serverList
+		state.serverList = serverList.reverse()
 	},
-	addMsgToList(state, msg) {
-		state.msgList.push(msg)
+	changeCurrChannel(state, channel) {
+		state.currChannel = channel
 	},
-	changeCurrActiveMsg(state, id) {
-		state.currActiveMsg = id
+	setEmojiList(state, list) {
+		state.emojiList = list
 	}
 }
 
 const actions = {
-	changeCurrServer({
+	changeCurrServerId({
 		commit
 	}, serverId) {
-		commit('changeCurrServer', serverId);
+		commit('changeCurrServerId', serverId);
+	},
+	changeCurrServer({
+		commit,
+		state,
+		dispatch
+	}, server) {
+		let profile = uni.getStorageSync('profile');
+		// 更新本地用户数据
+		profile.activeServer = server._id
+		const lastActiveChannel = profile.activeInfo[server._id].lastActiveChannel
+		profile.activeChannel = lastActiveChannel
+		uni.setStorageSync('profile', profile);
+		dispatch('user/changeProfile', profile, {
+			root: true
+		})
+
+		api.getChannelInfo({
+			id: lastActiveChannel
+		}).then((res) => {
+			commit('changeCurrChannel', res.data)
+		})
+		// console.log(profile.activeInfo[server._id].lastActiveChannel)
+		commit('changeCurrServer', server);
+		commit('changeCurrServerId', server._id);
 	},
 	updateServerList({
-		commit
+		commit,
+		dispatch
 	}, serverList) {
+		serverList.forEach((server) => {
+			let profile = uni.getStorageSync('profile');
+			if (server._id == profile.activeServer) {
+				dispatch('chat/changeCurrServer', server, {
+					root: true
+				})
+			}
+		})
 		commit('updateServerList', serverList)
 	},
-	addMsgToList({
-		commit
-	}, msg) {
-		commit('addMsgToList', msg)
-	},
-	changeCurrActiveMsg({
-		commit
-	}, id) {
-		commit('changeCurrActiveMsg', id)
+	async changeCurrChannel({
+		rootState,
+		commit,
+		dispatch
+	}, channel) {
+		let profile = uni.getStorageSync('profile');
+		// 更新本地用户数据
+		profile.activeChannel = channel
+		profile.activeInfo[channel.serverId].lastActiveChannel = channel._id
+		uni.setStorageSync('profile', profile);
+		commit('user/changeProfile', profile, {
+			root: true
+		})
+		// 获取该频道的消息
+		const msgList = await api.getMsgList({
+			origin: 'channel',
+			id: channel._id,
+			num: 10
+		})
+		if (msgList.statusCode == 200) {
+			dispatch('message/changeChannelMsgList', msgList.data.reverse(), {
+				root: true
+			})
+		}
+		commit('changeCurrChannel', channel);
 	}
 }
 

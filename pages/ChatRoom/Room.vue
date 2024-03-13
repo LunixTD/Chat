@@ -1,11 +1,14 @@
 <template>
 	<view class="room-container">
-		<StatusBarBox></StatusBarBox>
-		<view class="Header" :class="chatroomState == 'show' ? 'show' : 'hide'">
-			<view class="back">
-				<i class="iconfont icon-back2" @click="headerBack"></i>
+		<view class="header" :class="chatroomState == 'show' ? 'show' : 'hide'" :style="headerStyle">
+			<view class="headerBox">
+				<view class="back">
+					<i class="iconfont icon-back2" @click="headerBack"></i>
+				</view>
+				{{ currChannel.channelName ? currChannel.channelName : '' }}
 			</view>
 		</view>
+		<HeaderPlaced></HeaderPlaced>
 		<!-- <scroll-view class="roomMsgDetail" scroll-y="true">
 			<view class="roomInfo">
 				<image class="roomAvatar" src="../../static/Index-bg.png" mode="widthFix"></image>
@@ -14,10 +17,11 @@
 			</view>
 		</scroll-view> -->
 		<view class="msgContainerBox" :class="chatroomState == 'show' ? 'show' : 'hide'">
-			<MsgContainer></MsgContainer>
+			<MsgContainer origin="channel"></MsgContainer>
 		</view>
 		<view class="msgInputBox" :class="chatroomState == 'show' ? 'show' : 'hide'">
-			<MsgBottomBox></MsgBottomBox>
+			<!-- origin为底部输入框的归属位置，当前服务于频道页面 -->
+			<MsgBottomBox origin="channel"></MsgBottomBox>
 		</view>
 	</view>
 </template>
@@ -28,6 +32,9 @@ import { useStore } from 'vuex';
 import MsgListItem from '@/pages/MsgDetail/MsgListItem.vue';
 import MsgBottomBox from '@/pages/MsgDetail/MsgBottomBox.vue';
 import MsgContainer from '@/pages/MsgDetail/MsgContainer.vue';
+import { useStatusBarHeightStyle } from '@/utils/hooks/useStatusBarHeightStyle.js';
+
+const headerStyle = useStatusBarHeightStyle(88);
 
 // 消息页面动画相关
 const store = useStore();
@@ -38,6 +45,9 @@ function headerBack() {
 }
 const chatroomState = computed(() => {
 	return store.state.ui.chatroomState;
+});
+const currChannel = computed(() => {
+	return store.state.chat.currChannel;
 });
 </script>
 
@@ -51,6 +61,7 @@ const chatroomState = computed(() => {
 	@include centering;
 	flex-direction: column;
 	justify-content: space-between;
+	background-color: $ThemeDark3Color;
 	// 底部输入框显示隐藏
 	// & .show {
 	// 	transform: translateX(0);
@@ -61,6 +72,8 @@ const chatroomState = computed(() => {
 
 	.msgContainerBox {
 		transition: all ease 0.3s;
+		z-index: 100;
+		// background-color: red;
 		&.show {
 			transform: translateX(calc(120rpx - 20rpx - 100vw));
 		}
@@ -68,16 +81,19 @@ const chatroomState = computed(() => {
 			transform: translateX(0);
 		}
 	}
-	.Header {
+	.header {
 		width: 100vw;
-		height: 88rpx;
+		height: calc(88rpx + var(--status-bar-height));
+		// line-height: calc(88rpx + var(--status-bar-height));
 		position: fixed;
-		top: var(--status-bar-height);
+		top: 0;
 		left: 0;
 		border-bottom: 1px solid rgba(white, 0.05);
 		background-color: $ThemeDark3Color;
 		transition: all ease 0.3s;
-		z-index: 10;
+		text-align: center;
+		font-size: 34rpx;
+		z-index: 101;
 		&.show {
 			transform: translateX(0);
 		}
@@ -85,15 +101,26 @@ const chatroomState = computed(() => {
 			transform: translateX(calc(100vw - 120rpx + 20rpx));
 		}
 
-		.back {
-			float: left;
-		}
-		.iconfont {
-			color: white;
-			font-size: 48rpx;
-			width: 88rpx;
-			height: 88rpx;
-			line-height: 88rpx;
+		.headerBox {
+			position: relative;
+			width: 100%;
+			height: 100%;
+			// background-color: red;
+			@include centering;
+			justify-content: center;
+			.back {
+				// float: left;
+				position: absolute;
+				top: 0;
+				left: 0;
+			}
+			.iconfont {
+				color: white;
+				font-size: 48rpx;
+				width: 88rpx;
+				height: 88rpx;
+				line-height: 88rpx;
+			}
 		}
 	}
 
@@ -133,7 +160,7 @@ const chatroomState = computed(() => {
 		height: 88rpx;
 		background-color: red;
 		transition: all ease 0.3s;
-		z-index: 10;
+		z-index: 101;
 		// 底部输入框显示隐藏
 		&.show {
 			transform: translateX(0);

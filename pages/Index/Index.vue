@@ -1,5 +1,5 @@
 <template>
-	<view class="container">
+	<view class="container font-alimama">
 		<!-- <StatusBarBox></StatusBarBox> -->
 		<view class="title">
 			<text class="text">Mew</text>
@@ -19,6 +19,23 @@
 </template>
 
 <script setup>
+import { onLoad } from '@dcloudio/uni-app';
+onLoad(() => {
+	// uni.clearStorage();
+	const token = uni.getStorageSync('token');
+	// uni.reLaunch({
+	// 	url: '/pages/Main/Main'
+	// });
+	if (token) {
+		uni.reLaunch({
+			url: '/pages/Main/Main'
+		});
+		console.log('存在token，直接跳转主页面');
+	} else {
+		console.log('本地缓存无token，重新登录');
+	}
+});
+
 function toLoginPage() {
 	uni.navigateTo({
 		url: '/pages/Login/Login',

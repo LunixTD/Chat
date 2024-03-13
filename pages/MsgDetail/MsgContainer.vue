@@ -1,15 +1,11 @@
 <template>
 	<view class="msg-container" @touchstart="msgContainerFocus" :style="{ transition: 'transform ease 0.3s', transform: 'translateY(-' + raiseHeight + 'rpx)' }">
-		<UserInfo></UserInfo>
+		<!-- <UserInfo></UserInfo> -->
 		<!-- <MsgTimeline></MsgTimeline> -->
-		<MsgListItem
-			v-for="(item, index) in msgList"
-			:class="index == msgList.length - 1 && canUsePushAnime ? 'lastItemAnime' : ''"
-			:key="index"
-			:item="item"
-			:msgStyle="getMsgStyle(index)"
-		></MsgListItem>
-		<view id="lastBox"></view>
+		<view v-if="msgList.length !== 0" v-for="(item, index) in msgList" :key="item._id" :class="index == msgList.length - 1 && canUsePushAnime ? 'lastItemAnime' : ''">
+			<MsgListItem :item="item" :msgStyle="getMsgStyle(index)"></MsgListItem>
+		</view>
+		<view id="lastBox" :style="lastBoxStyle"></view>
 		<view class="marginBox"></view>
 	</view>
 </template>
@@ -17,15 +13,23 @@
 <script setup>
 import UserInfo from './UserInfo.vue';
 import MsgListItem from './MsgListItem.vue';
-import { ref, reactive, computed, watch, onMounted, nextTick, toRaw } from 'vue';
+import { ref, defineProps, reactive, computed, watch, nextTick, toRaw, getCurrentInstance, onMounted } from 'vue';
 import { useStore } from 'vuex';
-import { onReady } from '@dcloudio/uni-app';
+import { onReady, onLoad } from '@dcloudio/uni-app';
+import { useSystemInfo } from '@/utils/hooks/useSystemInfo.js';
 
+const { origin } = defineProps(['origin']);
 const store = useStore();
 
 const msgList = computed(() => {
-	return store.state.chat.msgList;
+	if (origin == 'channel') {
+		return store.state.message.channelMsgList;
+	}
+	if (origin == 'direct') {
+		return store.state.message.directMsgList;
+	}
 });
+
 const canUsePushAnime = computed(() => {
 	return store.state.ui.canUsePushAnime;
 });
@@ -36,16 +40,25 @@ const raiseHeight = computed(() => {
 	return inputHeight + msgPageRaiseHeight - 36;
 });
 
+const safeAreaBottom = useSystemInfo('safeAreaInsets').value.bottom;
+const lastBoxStyle = computed(() => {
+	return {
+		height: `${safeAreaBottom + 88}rpx`
+	};
+});
+
+const instance = getCurrentInstance();
 watch(
 	msgList,
 	() => {
-		nextTick(() => {
-			uni.pageScrollTo({
-				// scrollTop: 99999999,
-				selector: '#lastBox',
-				duration: 200
-			});
-		});
+		// nextTick(() => {
+		// 	uni.pageScrollTo({
+		// 		// 注意，有坑，微信小程序无法根据id定位，必须用数字
+		// 		scrollTop: 99999999,
+		// 		// selector: '#lastBox',
+		// 		duration: 200
+		// 	});
+		// });
 	},
 	{ deep: true }
 );
@@ -56,16 +69,19 @@ onReady(() => {
 });
 
 function getMsgStyle(msgIndex) {
+	// if (typeof msgIndex !== 'number') return;
 	if (msgIndex === 0) return 'newMsgWithDateLine';
-	const list = store.state.chat.msgList;
-	const preMsg = toRaw(list[msgIndex - 1]);
-	const currMsg = toRaw(list[msgIndex]);
+	// const list = store.state.chat.msgList;
+	// const preMsg = toRaw(list[msgIndex - 1]);
+	// const currMsg = toRaw(list[msgIndex]);
+	const currMsg = msgList.value[msgIndex];
+	const preMsg = msgList.value[msgIndex - 1];
 	// console.log(toRaw(preMsg));
 	const oneDayMs = 1000 * 60 * 60 * 24;
-	if (currMsg.date - preMsg.date >= oneDayMs) {
+	if (currMsg.createTime - preMsg.createTime >= oneDayMs) {
 		return 'newMsgWithDateLine';
 	} else {
-		if (currMsg.uid === preMsg.uid) {
+		if (currMsg.creator._id === preMsg.creator._id) {
 			return 'additionMsg';
 		} else {
 			return 'newMsg';
@@ -84,7 +100,7 @@ function msgContainerFocus() {
 	flex: 1;
 	// box-sizing: border-box;
 	width: 100vw;
-	min-height: calc(1000vh - 88rpx - 88rpx);
+	min-height: calc(100vh - 88rpx);
 	// padding-bottom: 88rpx;
 	// padding-top: 88rpx;
 	// padding: 0 20rpx;
@@ -117,5 +133,8 @@ function msgContainerFocus() {
 .marginBox {
 	margin-top: auto;
 	height: 36rpx;
+	/* #ifdef MP-WEIXIN */
+	// height: 96rpx;
+	/* #endif */
 }
 </style>

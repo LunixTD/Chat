@@ -1,0 +1,26 @@
+/* @font-face {
+	font-family: "阿里妈妈数黑体";
+	src: url('AlimamaShuHeiTi-Bold.woff2?t=1709547124060') format('woff2'),
+		url('AlimamaShuHeiTi-Bold.woff?t=1709547124060') format('woff'),
+		url('AlimamaShuHeiTi-Bold.ttf?t=1709547124060') format('truetype');
+} */
+/* 阿里健康体2.0 中文 45 R */
+@font-face {
+	font-family: "阿里健康体2.0 中文 85 B";
+	src:
+		url('alijiankangti85b.ttf?t=1709547124060') format('truetype');
+}
+
+/* @font-face {
+	font-family: "Resource Han Rounded CN Normal";
+	src:
+		url('siyuanyuanti.ttf?t=1709547124060') format('truetype');
+} */
+
+.font-alimama {
+	font-family: "阿里健康体2.0 中文 85 B" !important;
+	font-size: 16px;
+	font-style: normal;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}

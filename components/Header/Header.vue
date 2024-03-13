@@ -1,16 +1,24 @@
 <template>
-	<view class="Header">
-		<view class="back">
-			<i class="iconfont icon-back2" @click="back"></i>
+	<view class="Header" :style="[customStyle, headerStyle]">
+		<view class="left">
+			<view class="back">
+				<i class="iconfont icon-back2" @click="back"></i>
+			</view>
+			<slot name="left"></slot>
 		</view>
-		<slot name="left"></slot>
-		<slot name="right"></slot>
+		<view class="middle" :style="headerStyle">
+			<slot name="middle"></slot>
+		</view>
+		<view class="right">
+			<slot name="right" class="right"></slot>
+		</view>
 	</view>
 </template>
 
 <script setup>
 import { defineProps } from 'vue';
-const { backto, backBehavior } = defineProps(['backto', 'backBehavior']);
+import { useStatusBarHeightStyle } from '@/utils/hooks/useStatusBarHeightStyle.js';
+const { backto, backBehavior, customStyle } = defineProps(['backto', 'backBehavior', 'customStyle']);
 function back() {
 	// uni.navigateTo({
 	// 	url: `/pages/Main/Main`,
@@ -18,29 +26,40 @@ function back() {
 	// 	animationDuration: 200
 	// });
 	// backBehavior.value();
-	uni.navigateBack({
-		delta: 2,
-		animationType: 'pop-out',
-		animationDuration: 200
-	});
+	if (backBehavior !== undefined) {
+		backBehavior();
+	} else {
+		// uni.navigateBack({
+		// 	delta: 2,
+		// 	animationType: 'pop-out',
+		// 	animationDuration: 200
+		// });
+		uni.navigateBack();
+	}
 }
+
+const headerStyle = useStatusBarHeightStyle(88);
 </script>
 
 <style lang="scss">
 .Header {
 	width: 100vw;
-	height: calc(88rpx + var(--status-bar-height));
 	position: fixed;
 	top: 0;
 	left: 0;
-	padding-top: var(--status-bar-height);
-	border-bottom: 1px solid rgba(white, 0.05);
 	@include centering;
 	justify-content: space-between;
-	background-color: $ThemeDark3Color;
+	font-size: 32rpx;
+	z-index: 99;
 
 	.back {
 		float: left;
+	}
+	.middle {
+		position: absolute;
+		left: 50%;
+		top: 0;
+		transform: translateX(-50%);
 	}
 	.iconfont {
 		color: white;

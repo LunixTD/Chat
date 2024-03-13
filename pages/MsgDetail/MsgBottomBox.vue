@@ -13,7 +13,6 @@
 					maxlength="1000"
 					cursor-spacing="52"
 					:focus="inputFocus"
-					:hold-keyboard="true"
 					:confirm-hold="true"
 					:fixed="true"
 					:adjust-position="false"
@@ -30,12 +29,12 @@
 				<i class="iconfont icon-fasong" :class="msgType == 'text' ? 'show' : 'hide'" @touchend.prevent="sendMsg('text')"></i>
 			</view>
 		</view>
-		<view class="contentBox" :class="showContentBox ? 'show' : 'hide'" @touchmove.prevent>
+		<view class="contentBox" :style="contentBoxStyle" :class="showContentBox ? 'show' : 'hide'" @touchmove.prevent>
 			<scroll-view scroll-y="true" class="emojiBox boxItem" :class="contentBoxType === 'emoji' ? 'show' : 'hide'">
-				<image @click="chooseEmojiImg(index)" :src="item" mode="widthFix" v-for="(item, index) in emojiArr" :key="index" class="emojiImg"></image>
+				<image :src="item" @click="chooseEmojiImg(index)" :webp="true" mode="widthFix" v-for="(item, index) in emojiList" :key="index" class="emojiImg"></image>
 			</scroll-view>
 			<view class="voiceBtnBox boxItem" :class="[voiceState == 'recording' ? 'active' : '', contentBoxType === 'voice' ? 'show' : 'hide']">
-				<TouchBox :customStyle="customStyle" :touchStyle="touchStyle" class="touchBox" @touchstart="onVoiceStart" @touchend="onVoiceEnd">
+				<TouchBox :touchStartStyle="customStyle" :touchEndStyle="touchStyle" class="touchBox" @touchstart="onVoiceStart" @touchend="onVoiceEnd">
 					<i class="iconfont icon-maikefeng1"></i>
 				</TouchBox>
 				<i class="voiceBtnMask"></i>
@@ -48,16 +47,21 @@
 import { px2upx, touchFeedback } from '@/utils/tools.js';
 import variable from '../../styles/variable.js';
 import permision from '@/js_sdk/wa-permission/permission.js';
-import api from '@/services/request.js';
-import { emojiList } from '@/static/map/sourceUri.js';
+import api from '../../services/request.js';
+import { blob2base64 } from '@/utils/tools.js';
 
 // #ifdef APP
 const recorderManager = uni.getRecorderManager();
 const innerAudioContext = uni.createInnerAudioContext();
 // #endif
 
+// #ifdef MP-WEIXIN
+const recorderManager = wx.getRecorderManager();
+const innerAudioContext = wx.createInnerAudioContext();
+// #endif
+
 export default {
-	props: ['text'],
+	props: ['text', 'origin'],
 	emits: ['updateText'],
 	data() {
 		return {
@@ -68,12 +72,13 @@ export default {
 			touchStyle: {
 				transform: 'scale(0.93)'
 			},
-			emojiArr: Object.values(emojiList),
+			emojiList: [],
 			msgType: 'voice',
 			contentBoxHeight: 400,
 			contentBoxType: 'voice',
 			inputFocus: false,
 			keyboardHeight: 0,
+			safeAreaBottom: 0,
 			inputText: '',
 			innerText: '',
 			targetTextarea: null,
@@ -83,20 +88,52 @@ export default {
 			voiceState: 'pendding'
 		};
 	},
+	beforeMount() {
+		// const self = this;
+		uni.getSystemInfo({
+			success: (res) => {
+				this.safeAreaBottom = res.safeAreaInsets.bottom;
+				this.contentBoxHeight = 400 + res.safeAreaInsets.bottom;
+			}
+		});
+		api.getEmojiList().then((res) => {
+			if (res.statusCode == 200) {
+				let emojiSrcArr = Object.values(res.data).map((item) => {
+					return api.target_url + item;
+				});
+				this.emojiList = emojiSrcArr;
+				this.$store.commit('chat/setEmojiList', res.data);
+			}
+		});
+	},
 	mounted() {
-		// #ifdef APP
+		// #ifndef H5
 		let self = this;
 		recorderManager.onStop(function (res) {
 			// console.log('recorder stop' + JSON.stringify(res));
-			self.sendMsg('voice', {
-				type: 'voice',
-				voiceData: {
-					url: res.tempFilePath
-				},
-				imgData: {},
-				content: ''
+			// #ifdef APP
+			const innerAudioContext = uni.createInnerAudioContext();
+			// #endif
+			// #ifdef MP-WEIXIN
+			const innerAudioContext = wx.createInnerAudioContext();
+			// #endif
+			innerAudioContext.src = res.tempFilePath;
+			let duration = 0;
+			innerAudioContext.onCanplay(() => {
+				innerAudioContext.duration;
+				setTimeout(() => {
+					// duration = innerAudioContext.duration;
+					if (innerAudioContext.duration < 2) {
+						// console.log(self.$refs.pop.showPop('sdfsfd'));
+						self.$store.state.ui.myPopupRef.showPop('按键时长太短!');
+					} else {
+						api.uploadFile('voice', res.tempFilePath).then((uploadRes) => {
+							// console.log(uploadRes);
+							self.sendMsg('voice', uploadRes);
+						});
+					}
+				}, 100);
 			});
-			self.voicePath = res.tempFilePath;
 		});
 		// #endif
 	},
@@ -115,20 +152,26 @@ export default {
 			}
 			return top;
 		},
+		contentBoxStyle() {
+			return {
+				height: `${400 + this.safeAreaBottom}rpx`,
+				paddingBottom: `${this.safeAreaBottom}rpx`
+			};
+		},
 		showContentBox() {
 			return this.$store.state.ui.showContentBox;
 		},
 		inputHeight() {
 			return this.$store.state.ui.inputHeight;
 		},
-		// 底部输入框抬起高度
+		// 底部输入框抬起高度 ⭐⭐
 		bottomBoxRaiseHeight() {
-			let height = this.contentBoxHeight;
+			let height = this.contentBoxHeight - this.safeAreaBottom;
 			if (this.showContentBox) {
 				height = 0;
 			}
 			if (this.keyboardHeight !== 0) {
-				// 假定键盘高度大于contentBox高度;
+				// 我们假定键盘高度大于contentBox高度;
 				height = this.contentBoxHeight - px2upx(this.keyboardHeight);
 			}
 			return height;
@@ -149,121 +192,79 @@ export default {
 				count: 1,
 				sizeType: ['original'],
 				sourceType: ['album'],
-				success: function (res) {
-					let tempFilePaths = res.tempFilePaths[0];
-
-					// 获取图片信息
-					uni.getImageInfo({
-						src: tempFilePaths,
-						success: (imginfoRes) => {
-							// app端口压缩图片再发送
-							// #ifndef H5
-							uni.compressImage({
-								src: tempFilePaths,
-								quality: 70,
-								success: (cpsRes) => {
-									// 待解决，某些图片信息错误，比如竖图获取信息是横图
-									self.makelocalImgMsg({ ...imginfoRes, url: cpsRes.tempFilePath });
-									// 将本地图片上传服务器
-								}
-							});
-							// #endif
-
-							// 临时信息发送后再将图片上传到服务器，如果上传失败，则在消息上提示
-							self.uploadImage(tempFilePaths);
-						}
-					});
+				success: async function (res) {
+					let tempFilePath = res.tempFilePaths[0];
+					const uploadRes = await api.uploadFile('image', tempFilePath);
+					// console.log(uploadRes);
+					self.sendMsg('image', uploadRes);
 				}
 			});
 		},
-		makelocalImgMsg(imgInfo) {
-			const { width, height, type, url } = imgInfo;
-			// 构建本地消息
-			let msg = {
-				type: 'image',
-				imgData: {
-					url: url,
-					size: { width, height, type }
-				},
-				voiceData: {},
-				content: ''
-			};
-			this.sendMsg('image', msg);
-		},
-		uploadImage(uri) {
-			let self = this;
-			uni.uploadFile({
-				url: api.baseUrl + api.upload_img,
-				filePath: uri,
-				name: 'file',
-				fail: (res) => {
-					// console.log(res);
-				},
-				success: (uploadFileRes) => {
-					let { code, data } = JSON.parse(uploadFileRes.data);
-					if (code == 200) {
-						let msg = {
-							type: 'image',
-							imgData: data,
-							voiceData: {},
-							content: ''
-						};
-						console.log(1111);
-						// h5端必须接收服务器返回的图片临时路径，才能开始展示图片
-						// #ifdef H5
-						this.sendMsg('image', msg);
-						// #endif
-					}
-				}
-			});
-		},
-		sendMsg(type, msgContent) {
+		sendMsg(type, msgContentObj) {
 			// console.log('发送');
 			// 允许消息推送动画
 			if (!this.$store.state.ui.canUsePushAnime) {
 				this.$store.dispatch('ui/changeCanUsePushAnime', true);
 			}
-			// 本地假消息制作
-			let msg = {
-				type: 'text',
-				imgData: {},
-				voiceData: {},
-				content: this.inputText
-			};
-			this.msgId += 1;
+			// 构建消息对象
+			const profile = uni.getStorageSync('profile');
 			const self = this;
-			this.$store.dispatch('chat/addMsgToList', {
-				id: '0000' + self.msgId,
-				uid: '11111',
-				user: 'tudou',
-				date: new Date().getTime(),
-				msg: msgContent ? msgContent : msg
-			});
+			// 消息出处
+			let sendToId = '';
+			if (this.origin == 'channel') {
+				sendToId = this.$store.state.chat.currChannel._id;
+			} else if (this.origin == 'direct') {
+				sendToId = this.$store.state.chat.currTarget._id;
+			}
+			// 不同类别消息提交差异
+			let typeItem = null;
+			// 没有msgContentObj时默认是文字信息，有则按照约定好的格式提交，格式必须对，这样可直接展开运算参数上传
+			if (msgContentObj == undefined) {
+				msgContentObj = {
+					content: this.inputText
+				};
+			}
+			const msg = {
+				creator: profile,
+				[this.origin + 'Id']: sendToId,
+				type: type,
+				...msgContentObj
+			};
+			// console.log(msg);
+			// dispatch更新消息队列
+			if (this.origin == 'channel') {
+				this.$store.dispatch('message/addMsgToChannelMsgList', msg);
+			} else if (this.origin == 'direct') {
+				this.$store.dispatch('message/addMsgToDirectMsgList', msg);
+			}
+
+			// 上传消息
+			api.sendMsg(msg);
+
+			// 如果是文字消息则清空输入框
 			if (type == 'text') {
 				this.inputText = '';
 			}
 		},
+		// 底部emoji,语音等功能区弹出
 		toggleContentBox(type) {
 			if (this.contentBoxType != type && this.showContentBox) {
 				this.contentBoxType = type;
 			} else {
-				this.inputFocus = false;
 				this.$store.dispatch('ui/changeShowContentBox', !this.showContentBox);
-				this.msgPageRaiseForContentBox(this.showContentBox);
+				this.msgPageRaiseForContentBox(this.showContentBox ? this.contentBoxHeight : 0);
 				this.contentBoxType = type;
 			}
 		},
 		onInputFocus(e) {
-			// this.keyboardHeight = e.detail.height;
-			// // #ifdef APP
-			// this.msgPageRaiseForContentBox(true, px2upx(e.detail.height));
-			// // #endif
-			if (this.showContentBox) {
-				this.$store.dispatch('ui/changeShowContentBox', false);
-				// #ifndef APP
-				this.msgPageRaiseForContentBox(this.showContentBox);
-				// #endif
-			}
+			// if (this.showContentBox) {
+			// 	this.$store.dispatch('ui/changeShowContentBox', false);
+
+			// }
+			// #ifdef H5
+			// 这里有个坑, h5手机端需要下降消息界面, 但是h5pc端不需要, 有无虚拟键盘拉起的区别;
+			this.msgPageRaiseForContentBox(false);
+			// #endif
 		},
 		onInputBlur() {
 			// console.dir(this.$refs.msgInput.$el);
@@ -279,30 +280,41 @@ export default {
 			this.inputText = this.inputText.substring(0, this.cursorPosOnBlur) + `[emoji${index + 1}]` + this.inputText.substring(this.cursorPosOnBlur, this.inputText.length);
 			// this.inputText += `[emoji${index + 1}]`;
 		},
-		msgPageRaiseForContentBox(bool, height) {
-			// 固定数值,后续需要换成变量
-			let contentHeight = bool ? this.contentBoxHeight : 0;
-			this.$store.dispatch('ui/changeMsgPageRaiseHeight', height != undefined ? height : contentHeight);
+		msgPageRaiseForContentBox(height) {
+			// 功能区域固定高度数值,后续需要可换成变量
+			// 这里处理键盘弹出,功能盒子弹出时联动页面的高度抬高变化
+			this.$store.dispatch('ui/changeMsgPageRaiseHeight', height != false ? height : 0);
 		},
 		keyboardHeightChange(e) {
+			// #ifndef H5
+			let oldKeyboardHeight = this.keyboardHeight;
 			this.keyboardHeight = e.detail.height;
-			// #ifdef APP
-			this.msgPageRaiseForContentBox(true, px2upx(e.detail.height));
+			if (this.showContentBox && oldKeyboardHeight == 0) {
+				this.$store.dispatch('ui/changeShowContentBox', false);
+				this.msgPageRaiseForContentBox(px2upx(e.detail.height));
+			} else if (this.showContentBox && oldKeyboardHeight != 0) {
+				this.msgPageRaiseForContentBox(this.contentBoxHeight);
+			} else if (!this.showContentBox) {
+				this.msgPageRaiseForContentBox(px2upx(e.detail.height));
+			}
 			// #endif
 		},
 		// 语音按键
 		onVoiceStart() {
+			console.log('录音开始');
 			touchFeedback();
-			// #ifdef APP
-			recorderManager.start();
+			// #ifndef H5
+			recorderManager.start({ format: 'mp3' });
 			// #endif
 			// permision.requestAndroidPermission('record');
 			this.voiceState = 'recording';
 		},
 		onVoiceEnd() {
 			console.log('录音结束');
-			// #ifdef APP
-			recorderManager.stop();
+			// #ifndef H5
+			this.$nextTick(() => {
+				recorderManager.stop();
+			});
 			// #endif
 			this.voiceState = 'pendding';
 		}
@@ -322,7 +334,9 @@ export default {
 		showContentBox: {
 			handler(val) {
 				if (val == false) {
-					this.msgPageRaiseForContentBox(false);
+					if (this.keyboardHeight == 0) {
+						this.msgPageRaiseForContentBox(false);
+					}
 				}
 			}
 		}
@@ -425,7 +439,7 @@ export default {
 	border-top: 1px solid rgba(0, 0, 0, 0.03);
 	@include centering;
 	flex-direction: column;
-	z-index: 10;
+	z-index: 101;
 	transition: transform ease 0.3s;
 
 	.mainBox {
@@ -506,7 +520,6 @@ export default {
 		// display: none;
 		opacity: 0;
 		transition: opacity ease 0.3s;
-		opacity: 0;
 		.boxItem {
 			position: absolute;
 			left: 0;
@@ -541,7 +554,7 @@ export default {
 				height: 200rpx;
 				border-radius: 50%;
 				text-align: center;
-				z-index: 1000;
+				z-index: 100;
 				.iconfont {
 					border-radius: 50%;
 					line-height: 200rpx;
@@ -564,7 +577,7 @@ export default {
 				background-color: $ThemePrimaryColor;
 				// opacity: 0;
 				transition: all ease 0.3s, border ease 0.05s;
-				z-index: 100;
+				z-index: 10;
 			}
 			&.hide {
 				opacity: 0;

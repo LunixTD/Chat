@@ -3,19 +3,24 @@
 		<MsgTimeline v-if="getRenderIf('timeline')"></MsgTimeline>
 		<view class="msgBox">
 			<view class="msg-left" v-if="getRenderIf('fistMsg')">
-				<image class="msg-avatar" src="../../static/avatar/3.jpg" mode="widthFix"></image>
+				<image class="msg-avatar" v-if="creator.avatarInfo" :src="api.target_url + creator.avatarInfo.thumb" mode="widthFix"></image>
+				<text class="msg-avatar-text" v-if="!creator.avatarInfo">{{ creator.nickname.substring(0, 1) }}</text>
 			</view>
 			<view class="msg-right" @longpress="showModal">
-				<TouchBox class="first-msg" v-if="getRenderIf('fistMsg')" :customStyle="customStyle" :touchStyle="touchStyle">
+				<TouchBox class="first-msg" v-if="getRenderIf('fistMsg')" :touchStartStyle="customStyle" :touchEndStyle="touchStyle">
 					<view class="u-info">
-						<text class="uname">{{ user }}</text>
+						<text class="uname">{{ creator.nickname }}</text>
 						<text class="utag">管理员</text>
-						<text class="date">2018/08/09 19:05</text>
+						<text class="date">{{ formatTime(createTime) }}</text>
 					</view>
-					<MsgItem :item="item"></MsgItem>
+					<TextMsg :item="item" v-if="type == 'text'"></TextMsg>
+					<ImageMsg :item="item" v-if="type == 'image'"></ImageMsg>
+					<VoiceMsg :item="item" v-if="type == 'voice'"></VoiceMsg>
 				</TouchBox>
-				<TouchBox class="addition-msg" v-if="getRenderIf('additionMsg')" :customStyle="customStyle" :touchStyle="touchStyle">
-					<MsgItem :item="item"></MsgItem>
+				<TouchBox class="addition-msg" v-if="getRenderIf('additionMsg')" :touchStartStyle="customStyle" :touchEndStyle="touchStyle">
+					<TextMsg :item="item" v-if="type == 'text'"></TextMsg>
+					<ImageMsg :item="item" v-if="type == 'image'"></ImageMsg>
+					<VoiceMsg :item="item" v-if="type == 'voice'"></VoiceMsg>
 				</TouchBox>
 			</view>
 		</view>
@@ -25,11 +30,16 @@
 <script setup>
 import MsgTimeline from './MsgTimeline.vue';
 import { defineProps, computed, ref, onMounted, watch } from 'vue';
-import { touchFeedback } from '@/utils/tools.js';
-import MsgItem from './MsgItem.vue';
+import { touchFeedback, formatTime } from '@/utils/tools.js';
+import api from '@/services/request.js';
+import TextMsg from './TextMsg.vue';
+import ImageMsg from './ImageMsg.vue';
+import VoiceMsg from './VoiceMsg.vue';
 
 const { item, msgStyle } = defineProps(['item', 'msgStyle']);
-const { uid, user, date } = item;
+const { uid, creator, createTime, type } = item;
+
+// const
 
 const customStyle = {
 	backgroundColor: 'transparent'
@@ -56,6 +66,8 @@ function getRenderIf(name) {
 			if (msgStyle == 'additionMsg') {
 				renderBool = true;
 			}
+			break;
+		default:
 			break;
 	}
 	return renderBool;
@@ -102,6 +114,15 @@ export default {
 			width: 84rpx;
 			height: 84rpx;
 			border-radius: 50%;
+		}
+		.msg-avatar-text {
+			display: block;
+			width: 84rpx;
+			height: 84rpx;
+			line-height: 84rpx;
+			text-align: center;
+			border-radius: 50%;
+			background-color: $ThemeLightColor;
 		}
 	}
 	.msg-right {
@@ -155,6 +176,7 @@ export default {
 		.addition-msg {
 			box-sizing: border-box;
 			width: 100%;
+			font-size: 0;
 			::v-deep .msg {
 				padding: 6rpx 0;
 				min-height: 54rpx;

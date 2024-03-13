@@ -18,7 +18,7 @@
 				</view>
 			</template>
 		</Header>
-		<HeaderBox></HeaderBox>
+		<HeaderPlaced></HeaderPlaced>
 		<!-- <view class="msg-container" @touchstart="msgContainerFocus" :style="{ transition: 'transform ease 0.3s', transform: 'translateY(-' + raiseHeight + 'rpx)' }">
 			<UserInfo></UserInfo>
 			<MsgListItem

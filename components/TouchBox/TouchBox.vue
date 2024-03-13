@@ -1,15 +1,16 @@
 <template>
-	<view class="touchBox" :style="touch == '' ? customStyle : touchStyle" @touchstart="touchStart" @touchend="touchEnd">
+	<view class="touchBox" :style="[touch == '' ? touchStartStyle : touchEndStyle, customStyle]" @touchstart="touchStart" @touchend="touchEnd">
 		<slot></slot>
 	</view>
 </template>
 
 <script setup>
+import { defaults } from 'lodash';
 import { ref, defineProps } from 'vue';
 const touch = ref('');
 const timer = ref(null);
 const touching = ref(false);
-const { customStyle, touchStyle, goto } = defineProps(['customStyle', 'touchStyle', 'goto']);
+const { customStyle, touchStartStyle, touchEndStyle, goto } = defineProps(['customStyle', 'touchStartStyle', 'touchEndStyle', 'goto']);
 function touchStart() {
 	if (timer.value !== null) {
 		return;
@@ -36,8 +37,16 @@ function touchEnd() {
 	}
 }
 </script>
+<script>
+export default {
+	options: {
+		virtualHost: true
+	}
+};
+</script>
 <style lang="scss">
 .touchBox {
+	width: 100%;
 	// height: 80rpx;
 	// line-height: 40rpx;
 	// border-radius: 40rpx;

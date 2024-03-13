@@ -1,115 +1,193 @@
 <template>
-	<view class="chat-container" :style="containerStyle">
-		<!-- <TabBar></TabBar> -->
-		<!-- <view class="wrapper"> -->
-		<view class="leftContent" @touchstart.stop="ontouchstart">
+	<view class="chat-container" :style="containerStyle" scroll-y>
+		<view class="leftContent" @touchmove.stop.prevent="ontouchstart">
 			<!-- 服务器列表 -->
-			<scroll-view scroll-y="true" class="serverBox">
-				<view class="serverItem" v-for="(item, index) in serverList" :key="index" :class="item == currServer ? 'active' : ''" @click="handleChangeServer(item)">
+			<scroll-view scroll-y="true" enable-flex class="serverBox" @touchstart="ontouchstart" @click="aaaa">
+				<view
+					:class="item._id == currServerId ? 'active' : ''"
+					class="serverItem"
+					v-for="(item, index) in serverList"
+					:key="index"
+					@touchend=""
+					@click="changeServer(item)"
+				>
 					<view class="itemBox">
-						<image src="../../static/avatar/01.jpg" mode="widthFix" class="itemImg"></image>
+						<image :src="api.target_url + item.avatar.thumb" mode="widthFix" class="itemImg"></image>
 						<text class="itemTitle" v-if="false">info</text>
 					</view>
 				</view>
+				<view class="addServerBtn" @click="addServer">
+					<i class="iconfont icon-add"></i>
+				</view>
 			</scroll-view>
 			<!-- 频道列表 -->
-			<view class="channelBox">
+			<view class="channelBox" :style="channelBoxStyle" :class="noServerTag ? 'noServer' : ''">
 				<view class="channelWrapper">
-					<view class="serverTitleBox">
-						<text class="serverName">tudouserver</text>
-						<i class="iconfont icon-server-conf"></i>
+					<view class="noServerView" v-if="noServerTag">
+						<text class="text">您还没有属于自己的服务器哦</text>
+						<text class="text h5">请按左侧的"+"号按钮添加一个服务器吧~</text>
+						<image class="img" src="@/static/bg/noServer-bg.png" mode="widthFix"></image>
 					</view>
-					<view class="channalSearchBox">
-						<view class="inputBox">
-							<input type="text" class="searchInput" placeholder="搜索" disabled />
-							<i class="iconfont icon-search"></i>
+					<view v-if="!noServerTag">
+						<view class="serverTitleBox">
+							<text class="serverName">{{ currServer.serverName }}</text>
+							<i class="iconfont icon-server-conf"></i>
 						</view>
-						<i class="iconfont icon-chatroom-addfriend"></i>
+						<view class="channalSearchBox">
+							<view class="inputBox">
+								<input type="text" class="searchInput" placeholder="搜索" disabled />
+								<i class="iconfont icon-search"></i>
+							</view>
+							<i class="iconfont icon-chatroom-addfriend"></i>
+						</view>
+						<scroll-view scroll-y="true" enable-flex class="channelSort">
+							<MyCollapse
+								v-for="(sortItem, typeIndex) in currServer.channelSortList"
+								:key="sortItem._id"
+								:initState="activeInfo != undefined ? activeInfo[currServer._id][sortItem._id] : true"
+								:sortId="sortItem._id"
+							>
+								<template #title>
+									<view class="customTitle">{{ sortItem.channelSortName }}</view>
+								</template>
+								<template #content="{ showCollapse }">
+									<view class="channelContent">
+										<view
+											class="channelItem"
+											v-for="(item, index) in sortItem.channelList"
+											:key="item._id"
+											:class="[currChannel._id == item._id ? 'active' : '', showCollapse || currChannel._id == item._id ? 'show' : 'hide']"
+											@touchend=""
+											@click="changeChannel(item)"
+										>
+											<i class="iconfont" :class="'icon-chatroom-' + item.type"></i>
+											<text class="itemTitle">{{ item.channelName }}</text>
+										</view>
+									</view>
+								</template>
+							</MyCollapse>
+						</scroll-view>
 					</view>
-					<scroll-view scroll-y="true" class="channelList">
-						<uni-collapse class="text-channel channel">
-							<uni-collapse-item titleBorder="none" :border="false">
-								<template v-slot:title>
-									<TouchBox :customStyle="customStyle" :touchStyle="touchStyle">
-										<view class="customTitle">文字频道</view>
-									</TouchBox>
-								</template>
-								<view class="channel-content">
-									<view class="channelItem" @click="handleChatroom('show')">
-										<i class="iconfont icon-chatroom-text"></i>
-										<text class="itemTitle">综合</text>
-									</view>
-									<view class="channelItem">
-										<i class="iconfont icon-chatroom-text"></i>
-										<text class="itemTitle">高能</text>
-									</view>
-								</view>
-							</uni-collapse-item>
-						</uni-collapse>
-						<uni-collapse class="voice-channel channel">
-							<uni-collapse-item titleBorder="none" :border="false">
-								<template v-slot:title>
-									<TouchBox :customStyle="customStyle" :touchStyle="touchStyle">
-										<view class="customTitle">语音频道</view>
-									</TouchBox>
-								</template>
-								<view class="channel-content">
-									<view class="channelItem">
-										<i class="iconfont icon-chatroom-voice"></i>
-										<text class="itemTitle">综合</text>
-									</view>
-									<view class="channelItem">
-										<i class="iconfont icon-chatroom-voice"></i>
-										<text class="itemTitle">高能</text>
-									</view>
-								</view>
-							</uni-collapse-item>
-						</uni-collapse>
-					</scroll-view>
 				</view>
 			</view>
 		</view>
 
+		<!-- 聊天界面防滚动遮罩 -->
+		<view class="roomMask" @touchstart.prevent="" :style="{ zIndex: chatroomState == 'show' ? 0 : 102 }"></view>
+		<!-- 防透底部遮罩 -->
+
+		<view class="leftContentMask" :class="chatroomState == 'show' ? 'show' : 'hide'"></view>
+
 		<!-- 聊天房间 -->
-		<!-- <view ></view> -->
-		<Room class="roomBox" :class="chatroomState == 'show' ? 'show' : 'hide'"></Room>
+		<view style="zindex: 101"><Room class="roomBox" v-show="serverList.length != 0" :class="chatroomState == 'show' ? 'show' : 'hide'"></Room></view>
 	</view>
 </template>
 
 <script setup>
 import { onBackPress, onPageScroll, onLoad } from '@dcloudio/uni-app';
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, getCurrentInstance } from 'vue';
 import { useStore } from 'vuex';
-import useGetter from '@/store/hooks/useGetters.js';
+import api from '@/services/request.js';
+import { useSystemInfo } from '@/utils/hooks/useSystemInfo.js';
 import Room from './Room.vue';
+import { debounce, throttle } from 'lodash';
 
-const customStyle = {
-	// backgroundColor: 'rgb(56, 58, 67, 1)'
-};
-const touchStyle = {
-	transform: 'scale(0.97)'
-	// backgroundColor: 'rgba(87, 90, 99, 1)'
-};
+const statusBarHeight = useSystemInfo('statusBarHeight');
+const channelBoxStyle = computed(() => {
+	return {
+		paddingTop: `${uni.upx2px(10) + statusBarHeight.value}px`
+	};
+});
 
 const store = useStore();
-// const { currServer, serverList } = store.state.chat;
+const activeInfo = computed(() => {
+	return store.state.user.profile.activeInfo;
+});
 const chatroomState = computed(() => {
 	return store.state.ui.chatroomState;
-});
-const currServer = computed(() => {
-	return store.state.chat.currServer;
 });
 const serverList = computed(() => {
 	return store.state.chat.serverList;
 });
+const currServerId = computed(() => {
+	return store.state.chat.currServerId;
+});
+const currServer = computed(() => {
+	return store.state.chat.currServer;
+});
+const currChannel = computed(() => {
+	return store.state.chat.currChannel;
+});
+const channelMsgList = computed(() => {
+	return store.state.message.channelMsgList;
+});
+const noServerTag = computed(() => {
+	// console.log(serverList.value.length);
+	return serverList.value.length == 0 ? true : false;
+});
 
-function handleChangeServer(serverId) {
-	store.dispatch('chat/changeCurrServer', serverId + '');
+const myCollapseState = (sortItem) => {
+	if (activeInfo.value !== undefined) {
+		// console.log(sortItem);
+		// 如果是激活频道下的分类,则默认展开
+		sortItem.channelList.forEach((channel) => {
+			if (channel._id == currChannel.value._id) {
+				return true;
+			}
+		});
+		return activeInfo.value[currServer.value._id][sortItem._id];
+	} else {
+		return true;
+	}
+};
+
+async function getServerList() {
+	// 增加服务器后服务器列表变动,需要上传一次用户信息
+	const profile = uni.getStorageSync('profile');
+	// console.log(profile);
+	store.dispatch('user/changeProfile', profile);
+	// console.log(profile);
+
+	// 获取服务器列表
+	const serverListRes = await api.getServerList({
+		creator: profile._id
+	});
+	// 初始化数据
+	if (serverListRes.data.length !== 0) {
+		store.dispatch('chat/updateServerList', serverListRes.data);
+		// store.dispatch('chat/changeCurrServer', profile.activeServer);
+		// store.dispatch('chat/changeCurrChannel', profile.activeChannel);
+	}
+}
+
+// 初始化请求数据
+onLoad(() => {
+	// 清空缓存数据
+	// uni.clearStorage();
+	// 创建服务器后返回该页面刷新服务器列表
+	uni.$on('refreshServerList', function () {
+		getServerList();
+	});
+	getServerList();
+});
+
+function changeServer(server) {
+	store.dispatch('chat/changeCurrServer', server);
 	// console.log(serverId);
 }
 
-function handleChatroom(state) {
-	store.dispatch('ui/changeChatroomState', state + '');
+function changeChannel(channel) {
+	store.dispatch('ui/changeChatroomState', 'show');
+	store.dispatch('chat/changeCurrChannel', channel);
+}
+
+// 添加服务器
+function addServer() {
+	uni.navigateTo({
+		url: '/pages/AddServer/AddServer',
+		animationType: 'slide-in-bottom',
+		animationDuration: 300
+	});
 }
 
 // 禁止默认返回
@@ -118,19 +196,32 @@ onBackPress(() => {
 	return true;
 });
 
-// #ifdef H5
-const box = document.getElementsByClassName('chat-container');
-console.log(box);
-// #endif
-
 // 让左侧窗口跟着右侧聊天窗口滚动，造成只有右侧窗口滚动的假象
 const scrollTop = ref(0);
 const scrollTopTmp = ref(0);
+const screenHeight = useSystemInfo('screenHeight');
 onPageScroll((e) => {
-	// console.log(e.scrollTop);
 	// scrollTop.value = e.scrollTop;
 	scrollTopTmp.value = e.scrollTop;
+	if (e.scrollTop < screenHeight.value / 2) {
+		// console.log(channelMsgList.value.slice(-1)[0]._id);
+		getHistoryMsg();
+	}
 });
+
+// 向上获取历史消息
+const getHistoryMsg = throttle(async () => {
+	let fromId = channelMsgList.value.slice(0)[0]._id;
+	console.log(fromId);
+	const msgList = await api.getMsgList({
+		origin: 'channel',
+		id: currChannel.value._id,
+		fromId: fromId,
+		num: 10
+	});
+	// console.log(msgList);
+	store.dispatch('message/updateChannelMsgList', msgList.data.reverse());
+}, 3000);
 
 watch(chatroomState, (val) => {
 	if (val == 'hide') {
@@ -141,7 +232,6 @@ watch(chatroomState, (val) => {
 					scrollTop: scrollTopTmp.value,
 					duration: 0
 				});
-				console.log(1);
 			}, 1000);
 		});
 	}
@@ -158,18 +248,22 @@ const containerStyle = computed(() => {
 // 		transform: `translateY(${scrollTop.value}px)`
 // 	};
 // });
-
-function ontouchstart() {}
+function aaaa() {}
+function ontouchstart() {
+	console.log('点击');
+}
 </script>
 
 <style lang="scss">
 .chat-container {
-	width: auto;
+	position: relative;
+	width: 100vw;
 	height: auto !important;
 	background-color: $ThemeDark4Color;
 	@include centering;
 	justify-content: flex-start;
 	padding-left: calc(100vw - 120rpx + 20rpx);
+	overflow-x: hidden;
 	.leftContent {
 		position: fixed;
 		width: 100%;
@@ -190,11 +284,11 @@ function ontouchstart() {}
 		// background-color: coral;
 		padding: 20rpx 0;
 		padding-top: calc(50rpx + var(--status-bar-height));
-		overflow: visible;
+		padding-bottom: 120rpx;
 		.serverItem {
 			position: relative;
 			width: 146rpx;
-			height: 126rpx;
+			height: 116rpx;
 			padding: 0 10rpx;
 			@include centering;
 			&::before {
@@ -227,13 +321,30 @@ function ontouchstart() {}
 				height: 88rpx;
 			}
 		}
+		// 添加按钮
+		.addServerBtn {
+			width: 146rpx;
+			height: 116rpx;
+			padding: 0 10rpx;
+			@include centering;
+			.iconfont {
+				width: 100rpx;
+				height: 100rpx;
+				line-height: 100rpx;
+				font-size: 40rpx;
+				border-radius: 50%;
+				background-color: $ThemeDark2Color;
+			}
+		}
 	}
 	// 频道列表
 	.channelBox {
 		width: calc(100vw - 146rpx - 120rpx);
 		height: 100%;
 		padding: 30rpx 0;
-		padding-top: calc(30rpx + var(--status-bar-height));
+		&.noServer {
+			width: calc(100vw - 146rpx - 30rpx);
+		}
 		.channelWrapper {
 			width: 100%;
 			height: 100%;
@@ -244,6 +355,30 @@ function ontouchstart() {}
 			flex-direction: column;
 			justify-content: flex-start;
 			padding: 30rpx 0;
+
+			.noServerView {
+				width: 100%;
+				height: 100%;
+				padding-bottom: 300rpx;
+				text-align: center;
+				@include centering;
+				flex-direction: column;
+				.text {
+					justify-self: flex-start;
+					display: block;
+					font-size: 36rpx;
+					color: $FontGrey;
+					margin: 10rpx 0;
+				}
+				.h5 {
+					font-size: 26rpx;
+				}
+				.img {
+					width: 88%;
+					margin: 10rpx 0;
+				}
+			}
+
 			.serverTitleBox {
 				@include centering;
 				width: 100%;
@@ -256,6 +391,9 @@ function ontouchstart() {}
 				}
 				.iconfont {
 					font-size: 32rpx;
+					/* #ifdef MP-WEIXIN */
+					margin-right: 70rpx;
+					/* #endif */
 				}
 			}
 			.channalSearchBox {
@@ -300,41 +438,55 @@ function ontouchstart() {}
 			}
 
 			// 频道
-			.channelList {
+			.channelSort {
 				background-color: $ThemeDark3Color;
-				.channel {
-					background-color: $ThemeDark3Color;
-
-					.customTitle {
-						width: 100%;
-						height: 60rpx;
-						background-color: $ThemeDark3Color;
-						font-size: 28rpx;
-						line-height: 60rpx;
-						color: $FontGrey;
-						padding: 0 20rpx;
-					}
-					.uni-icons {
-						font-size: 26rpx;
-					}
-					.channel-content {
-						background-color: $ThemeDark3Color;
-					}
-				}
-				.channelItem {
-					background-color: $ThemeDark3Color;
-					color: $FontGrey;
-					height: 80rpx;
+				.customTitle {
 					width: 100%;
-					line-height: 80rpx;
-					font-size: 28rpx;
-					padding: 0 20rpx;
-					.iconfont {
-						font-size: 42rpx;
-						margin-right: 20rpx;
-					}
-					&.active {
-						background-color: $ThemeDarkPop;
+					height: 60rpx;
+					background-color: $ThemeDark3Color;
+					font-size: 30rpx;
+					line-height: 60rpx;
+					color: $FontGrey;
+					// padding: 0 20rpx;
+				}
+				.uni-icons {
+					font-size: 26rpx;
+				}
+				.channel-content {
+					background-color: $ThemeDark3Color;
+				}
+				.channelContent {
+					.channelItem {
+						background-color: $ThemeDark3Color;
+						color: $FontGrey;
+						height: 80rpx;
+						width: 100%;
+						font-size: 0;
+						line-height: 80rpx;
+						padding: 0 20rpx;
+						@include centering;
+						justify-content: flex-start;
+						transition: all ease 0.3s;
+						.itemTitle {
+							font-size: 30rpx;
+							line-height: 80rpx;
+						}
+						.iconfont {
+							font-size: 42rpx;
+							margin-right: 20rpx;
+							line-height: 80rpx;
+						}
+						// 这里的顺序一定不能修改!一定是active样式最优先！！
+						&.show {
+							display: flex;
+						}
+						&.hide {
+							display: none;
+						}
+						&.active {
+							background-color: $ThemeDarkPop;
+							color: white;
+						}
 					}
 				}
 			}
@@ -349,9 +501,66 @@ function ontouchstart() {}
 		// @include centering;
 		// justify-content: flex-start;
 	}
+
+	// 防触控遮罩层
+	.roomMask {
+		position: fixed;
+		top: 0;
+		left: calc(100vw - 120rpx + 20rpx);
+		width: 100vw;
+		height: 100vh;
+		// background-color: rgba(0, 0, 0, 0.4);
+		// background-color: red;
+		z-index: 102;
+	}
+
+	// 防透底色遮罩层
+	.leftContentMask {
+		position: fixed;
+		width: 100vw;
+		height: 100vh;
+		top: 0;
+		left: 0;
+		opacity: 0;
+		background-color: $ThemeDark3Color;
+		&.show {
+			// opacity: 0.4;
+			// z-index: 99;
+			animation: leftContentMaskShow 0.3s ease forwards;
+		}
+		&.hide {
+			animation: leftContentMaskHide 0.3s ease forwards;
+			// opacity: 0;
+			// z-index: -1;
+		}
+		@keyframes leftContentMaskShow {
+			0% {
+				opacity: 0;
+				z-index: 99;
+			}
+			100% {
+				opacity: 1;
+				z-index: 99;
+			}
+		}
+		@keyframes leftContentMaskHide {
+			0% {
+				opacity: 1;
+				z-index: 99;
+			}
+			99% {
+				opacity: 0;
+				z-index: 99;
+			}
+			100% {
+				z-index: -1;
+			}
+		}
+	}
+
 	// 聊天房间
 	.roomBox {
-		z-index: 100;
+		z-index: 99;
 		// margin-left: 300px;
 		// position: absolute;
 		// top: 0;

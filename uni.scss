@@ -31,17 +31,19 @@ $ChatInputMaxHeight: 324rpx;
 $IconWhite: rgb(199, 200, 206);
 
 page {
-	font-family: 'sans-serif';
+	font-family: 'Alibaba Health Font 2.0 CN 85 B';
+	font-weight: 100;
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;
 	user-select: none;
 	overscroll-behavior: none;
+	/* #ifndef MP-WEIXIN */
 	-webkit-overflow-scrolling: touch;
+	/* #endif */
 	color: $FontWhite;
 }
 view {
-	font-family: 'sans-serif';
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;
