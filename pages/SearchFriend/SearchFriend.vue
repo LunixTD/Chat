@@ -118,7 +118,7 @@ function gotoPage() {
 				height: 120rpx;
 				@include centering;
 				justify-content: flex-start;
-				border-bottom: 1;
+				// border-bottom: 1;
 				// background-color: $ThemeDarkPop;
 				.icon-back {
 					margin-right: 30rpx;

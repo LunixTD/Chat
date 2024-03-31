@@ -23,6 +23,7 @@ import { onNavigationBarButtonTap } from '@dcloudio/uni-app';
 import { useStore } from 'vuex';
 import varible from '@/styles/variable.js';
 import api from '@/services/request.js';
+import { asyncUserProfile } from '@/utils/hooks/useAsyncUserProfile.js';
 
 const { ThemeDark1Color, ThemeDark3Color, ThemeDark5Color, ThemeDarkPop, BtnPrimaryColor, BtnPrimaryPressColor } = varible;
 const store = useStore();
@@ -57,7 +58,7 @@ async function handleLogin() {
 	} else {
 		// 登录请求
 		const loginRes = await api.login({
-			[utype]: username.value,
+			[utype]: username.value.toLowerCase(),
 			password: pwd.value
 		});
 		const { profile, code, token } = loginRes.data;
@@ -69,21 +70,17 @@ async function handleLogin() {
 			// 登录成功进行初始化操作
 
 			// 检查用户是否有初始化用户名,有则直接进入主界面,没有则去到用户初始化设置页面
+			await asyncUserProfile('updateLocal', profile);
+			uni.setStorageSync('token', token);
 			if (profile.nickname == undefined) {
-				store.dispatch('user/setToken', token);
-				uni.setStorageSync('profile', profile);
-				store.dispatch('user/changeProfile', profile);
-				// 将token传到下一个页面,初始化配置完成后再将token配置到本地缓存中
+				// store.dispatch('user/setToken', token);
+				// 将token保存到state,初始化配置完成后再将token配置到本地缓存中
 				// 用户在配置界面中断后可以通过判断token是否有值来决定重新进入应用后是否再次进入配置页面
 				uni.navigateTo({
 					url: `/pages/InitUserInfo/InitUserInfo`,
 					animationType: 'slide-in-bottom'
 				});
 			} else {
-				uni.setStorageSync('token', token);
-				uni.setStorageSync('profile', profile);
-				store.dispatch('user/changeProfile', profile);
-				// store.dispatch('message/connectSocket', 111);
 				uni.navigateTo({
 					url: '/pages/Main/Main',
 					animationType: 'slide-in-bottom'

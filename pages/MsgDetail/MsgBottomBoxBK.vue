@@ -50,7 +50,6 @@ import variable from '../../styles/variable.js';
 import permision from '@/js_sdk/wa-permission/permission.js';
 import api from '../../services/request.js';
 import { blob2base64 } from '@/utils/tools.js';
-import { formatTime } from '@/utils/tools.js';
 
 // #ifdef APP
 const recorderManager = uni.getRecorderManager();
@@ -204,6 +203,7 @@ export default {
 		linechange(e) {
 			const { lineCount, heightRpx } = e.detail;
 			this.inputHeight = heightRpx;
+			console.log(this.inputHeight);
 			if (heightRpx > variable.ChatInputMaxHeight) {
 				this.inputHeight = variable.ChatInputMaxHeight;
 			}
@@ -248,6 +248,13 @@ export default {
 				sendToId = this.$store.state.chat.currRoom._id;
 			}
 
+			// 没有msgContentObj时默认是文字信息，有则按照约定好的格式提交，格式必须对，这样可直接展开运算参数上传
+			if (msgContentObj == undefined) {
+				msgContentObj = {
+					content: this.inputText
+				};
+			}
+
 			let msgDisplayType = '';
 			const { data: lastMsg } = await api.getLastMsg({
 				origin: this.origin,
@@ -263,7 +270,6 @@ export default {
 				}
 			}
 
-			// msgContentObj为多媒体信息参数，按照约定好的格式提交，格式必须对，这样可直接展开运算参数上传
 			const msg = {
 				creator: profile,
 				[this.origin + 'Id']: sendToId,
@@ -271,19 +277,6 @@ export default {
 				msgDisplayType,
 				...msgContentObj
 			};
-
-			switch (type) {
-				case 'text':
-					msg.content = this.inputText;
-					break;
-				case 'image':
-					msg.content = '[图片]';
-					break;
-				case 'voice':
-					msg.content = '[语音]';
-					break;
-			}
-
 			// console.log(msg);
 			// dispatch更新消息队列
 			// if (this.origin == 'channel') {
@@ -293,10 +286,11 @@ export default {
 			// }
 			if (this.origin == 'room') {
 				const userList = this.$store.state.chat.currRoom.userList;
-				if (profile._id == userList[0]._id) {
-					msg.targetId = userList[1]._id;
+				// console.log(userList);
+				if (profile._id == userList[0]) {
+					msg.targetId = userList[1];
 				} else {
-					msg.targetId = userList[0]._id;
+					msg.targetId = userList[0];
 				}
 			}
 
@@ -307,17 +301,9 @@ export default {
 				creator: profile
 			};
 			uni.$emit(`${this.origin}/sendMsg`, uploadMsg);
-			// this.$socket.emit(`${this.origin}/sendMsg`, uploadMsg);
 			// 这里如果先插入数据, zpaging会对数据做标记, 上传的消息会添加上标记属性, 所以要先上传消息;
 			// this.$store.dispatch('message/changeLastMsg', msg);
-			// console.log(msg);
-			// msg.createTime = formatTime(new Date().getTime(), 'yyyy HH:mm:ss');
-			if (this.origin == 'channel') {
-				// this.$store.state.ui.zPagingRef.addChatRecordData(msg);
-			} else {
-				// this.$store.state.ui.detailPagingRef.addChatRecordData(msg);
-				uni.$emit('updateRoomLastMsg', msg);
-			}
+			this.$store.state.ui.zPagingRef.addChatRecordData(msg);
 
 			// 如果是文字消息则清空输入框
 			if (type == 'text') {
@@ -444,8 +430,7 @@ export default {
 					let strVal = e.target.value;
 					let delEnd = selectionStart - 1
 					let delChar = strVal.charAt(delEnd);
-					// let reg = "/(?<=\[)[^\]]*(?=\])/g";
-					let reg = new RegExp('\\[([^\\[\\]]+)\\]', 'g');
+					let reg = /(?<=\[)[^\]]*(?=\])/g;
 					// let matchArr = strVal.match(reg);
 					let matchArr = []
 					let matched = null
@@ -470,19 +455,15 @@ export default {
 					// 	}
 					// }
 
-					// 从emoji字符中间删除整个字符⭐⭐⭐
+					// 从emoji字符中间删除整个字符
 					if (matchArr.length != 0) {
-						// console.log(matchArr)
 						let matchEmojiArr = []
 						matchArr.forEach((item) => {
-							if (emojiList[item[1]] != undefined) {
-								// 字符的位置
-								let start = item['index'];
-								let end = start + item[1].length+1;
-								// 光标位置
+							if (emojiList[item[0]] != undefined) {
+								let start = item['index'] - 1;
+								let end = start + item[0].length + 1;
 								let cursorPos = selectionStart - 1;
 								if (cursorPos >= start && cursorPos <= end) {
-									// console.log(cursorPos, start, end, item)
 									// console.log("位置正确")
 									e.preventDefault();
 									e.target.setRangeText("", start, end+1, "end");

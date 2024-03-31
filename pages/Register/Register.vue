@@ -169,13 +169,16 @@ async function register() {
 		}
 	}
 	if (canPass.value) {
+		if (type.value == 'email') {
+			username.value = username.value.toLowerCase();
+		}
 		const regRes = await api.register({
 			type: type.value,
 			username: username.value,
 			password: password.value
 		});
 
-		console.log(regRes);
+		// console.log(regRes);
 		if (regRes.data.code == 200) {
 			console.log('全部数据正常可以注册');
 			instance.refs.pop.showPop(`注册成功，请在主页面登录账号~`);

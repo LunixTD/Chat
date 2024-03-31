@@ -25,48 +25,46 @@
 			<i class="iconfont icon-server-conf iconhide"></i>
 		</view>
 		<!-- 消息列表 -->
-		<z-paging ref="paging" v-model="dataList" @query="getRooms" class="msgContent" :paging-style="msgContentStyle" :class="isSearching ? 'hide' : ''">
+		<z-paging ref="paging" v-model="dataList" @query="getNotifications"></z-paging>
+		<scroll-view scroll-y="true" class="msgContent" :style="msgContentStyle" :class="isSearching ? 'hide' : ''" @scroll="onMsglistScroll">
+			<view class="searchBoxPlaced"></view>
+			<!-- 近期频繁沟通用户 -->
+			<scroll-view scroll-x="true" class="recentFriend" show-scrollbar="false">
+				<view class="frindItemBox" v-for="item in recentFriends" :key="item">
+					<view class="avatarBox">
+						<image :src="'../../static/avatar/' + item + '.jpg'" mode="widthFix" class="avatar"></image>
+						<i class="dot"></i>
+					</view>
+				</view>
+			</scroll-view>
 			<view class="msg-list">
 				<view
-					v-for="(item, index) in dataList"
-					:key="item._id"
-					class="msg-list-item"
+					v-for="(item, index) in 100"
+					:key="index"
+					class="list-item"
 					:class="getRippleClass(index)"
 					@touchstart="showRipple(index)"
 					@touchend="hideRipple(index)"
-					@tap="gotoDetail(item)"
+					@tap="gotoPage('MsgDetail')"
 					@longpress="showDetailModal(index)"
 				>
 					<view class="ripple"></view>
 					<view class="avatarBox">
-						<!-- <image :src="api.target_url + item.target.avatarInfo.thumb" mode="widthFix" class="avatar"></image> -->
-						<Avatar :style="avatarStyle" :name="item.target.nickname" :avatarInfo="item.target.avatarInfo"></Avatar>
+						<image :src="'../../static/avatar/' + ((item % 5) + 1) + '.jpg'" mode="widthFix" class="avatar"></image>
 						<i class="dot"></i>
 					</view>
 					<view class="msg-about">
 						<view class="upBox">
-							<text class="text uname">{{ item.target.nickname }}</text>
-							<text class="text dateTime">{{ item.updateTime }}</text>
+							<text class="text uname">Robot</text>
+							<text class="text dateTime">1年前</text>
 						</view>
 						<view class="downBox">
-							<text class="downBoxMsg" v-if="item.lastMsg">{{ item.lastMsg.content }}</text>
-							<view class="counter" v-if="item.unReadNum != 0">
-								<text class="num">{{ item.unReadNum }}</text>
-							</view>
+							<text class="msg">消息信息内容内容内容内容内容内容内容内容</text>
 						</view>
 					</view>
 				</view>
 			</view>
-			<template #loadingMoreNoMore>
-				<view></view>
-			</template>
-			<template #empty>
-				<view class="empty">
-					<image class="emptyImg" src="../../static/bg/noServer-bg.png" mode="widthFix"></image>
-					<text class="h1">这里被打扫的很干净~</text>
-				</view>
-			</template>
-		</z-paging>
+		</scroll-view>
 		<!-- 搜素项列表 -->
 		<view class="searchFilter" :class="isSearching ? '' : 'hide'">
 			<view class="filterTypeBox">
@@ -89,17 +87,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onUpdated, watch, onMounted, getCurrentInstance } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { onHide } from '@dcloudio/uni-app';
 import { useStore } from 'vuex';
 import { touchFeedback } from '@/utils/tools.js';
 import { debounce, throttle } from 'lodash';
 import { useSystemInfo } from '@/utils/hooks/useSystemInfo.js';
-import { asyncUserProfile } from '@/utils/hooks/useAsyncUserProfile.js';
 import variable from '@/styles/variable.js';
-import api from '@/services/request.js';
-import { formatTime } from '@/utils/tools.js';
-import { useState } from '@/store/hooks/useStore.js';
 
 const isSearching = ref(false);
 const recentFriends = [1, 2, 3, 4, 5, 1, 2, 3, 4, 5];
@@ -130,12 +124,11 @@ const filterType = [
 	}
 ];
 const store = useStore();
-
-const uiState = useState('ui', ['searchType', 'currTabPage']);
-const { searchType, currTabPage } = uiState;
-
-const currRoom = computed(() => {
-	return store.state.chat.currRoom;
+const searchType = computed(() => {
+	return store.state.ui.searchType;
+});
+const currTabPage = computed(() => {
+	return store.state.ui.currTabPage;
 });
 
 // 顶部根据状态栏定位的位置
@@ -153,14 +146,8 @@ const searchBoxStyle = computed(() => {
 });
 const msgContentStyle = computed(() => {
 	return {
-		height: `calc(100vh - ${statusBarHeight.value + uni.upx2px(194 + variable.TabbarHeight + safeAreaInsets.value.bottom)}px)`,
-		top: `${uni.upx2px(194) + statusBarHeight.value}px`
-	};
-});
-const avatarStyle = computed(() => {
-	return {
-		width: '96rpx',
-		height: '96rpx'
+		height: `calc(100vh - ${statusBarHeight.value + uni.upx2px(variable.TabbarHeight + safeAreaInsets.value.bottom + 99)}px)`,
+		top: `${uni.upx2px(variable.TabbarHeight - 14) + statusBarHeight.value}px`
 	};
 });
 
@@ -173,18 +160,11 @@ function searchState(state) {
 	isSearching.value = state;
 }
 
-function gotoPage(page) {
-	uni.navigateTo({
-		url: `/pages/${page}/${page}`,
-		animationType: 'pop-in'
-	});
-}
-
 const isScrolling = ref(false);
 const msgBoxScrollDir = ref(0);
 const scrollTimer = ref(null);
 function onMsglistScroll(e) {
-	// clearTimeout(scrollTimer.value);
+	clearTimeout(scrollTimer.value);
 	isScrolling.value = true;
 	scrollTimer.value = setTimeout(() => {
 		isScrolling.value = false;
@@ -272,119 +252,10 @@ function showDetailModal(index) {
 	// alert(index);
 }
 
-// 去消息详情页面
-function gotoDetail(item) {
-	// 离开页面前先清空未读条目
-	const roomData = getRoomFromDataList(item._id, 'replace');
-	// console.log(roomData);
-	roomData.room.unReadNum = 0;
-	dataList.value.splice(roomData.index, 1, roomData.room);
-
-	store.commit('chat/changeCurrRoom', item);
+function gotoPage(page) {
 	uni.navigateTo({
-		url: `/pages/MsgDetail/MsgDetail?room=${JSON.stringify(item)}`
+		url: `/pages/${page}/${page}`
 	});
-}
-
-const dataList = ref([]);
-const paging = ref(null);
-const profile = uni.getStorageSync('profile');
-
-// 获取私聊房间列表
-async function getRooms() {
-	const resData = await api.getRoomList({ uid: profile._id });
-
-	if (resData.statusCode == 200) {
-		// console.log(resData);
-
-		// 添加一个新消息未读条目数据
-		let dataArr = resData.data.map((item) => {
-			return handleRoomData(item);
-		});
-		// console.log(dataArr);
-		paging.value.setLocalPaging(dataArr);
-	}
-}
-// 处理获取到的房间数据
-const unReadList = uni.getStorageSync('unReadList');
-function handleRoomData(item) {
-	// console.log(item);
-	// 添加未读条目数
-	if (unReadList !== '') {
-		item.unReadNum = unReadList[item._id];
-	} else {
-		item.unReadNum = 0;
-	}
-	// 添加目标数据
-	const userList = item.userList;
-	if (userList[0]._id == profile._id) {
-		item.target = userList[1];
-	} else {
-		item.target = userList[0];
-	}
-	// 添加日期数据
-	item.updateTime = formatTime(item.updateTime, 'dynamic');
-	return item;
-}
-
-// 数据变更位置
-// 将socket接收到的消息插入队列
-onMounted(() => {
-	const instance = getCurrentInstance();
-	store.commit('ui/setMsgPagingRef', instance.refs.paging);
-	uni.$on('updateRoomList', (room) => {
-		// 已经有房间则找出来放最上面,没有则创建
-		const roomData = getRoomFromDataList(room._id, 'slice');
-		let tmpRoom = null;
-		if (roomData.room != undefined) {
-			// console.log(roomData);
-			tmpRoom = roomData.room;
-		} else {
-			tmpRoom = handleRoomData(room);
-			// console.log(tmpRoom);
-		}
-		// 将新房间id添加到本地用户信息中
-		const roomList = uni.getStorageSync('profile').roomList;
-		asyncUserProfile('updateLocal', {
-			roomList: [...roomList, tmpRoom._id]
-		});
-
-		paging.value.addDataFromTop(tmpRoom);
-		// store.commit('chat/changeCurrRoom', tmpRoom);
-	});
-	// 接收到新消息后,更改显示的最新消息展示和未读数目统计
-	uni.$on('updateRoomLastMsg', (msg) => {
-		const roomData = getRoomFromDataList(msg.roomId, 'slice');
-		roomData.room.lastMsg = msg;
-		const pages = getCurrentPages();
-		const currPage = pages.slice(-1)[0];
-		if (currPage.$page.path != '/pages/MsgDetail/MsgDetail') {
-			roomData.room.unReadNum += 1;
-		} else {
-			if (currRoom.value._id != msg.roomId) {
-				roomData.room.unReadNum += 1;
-			}
-		}
-		paging.value.addDataFromTop(roomData.room);
-	});
-});
-
-function getRoomFromDataList(roomId, actionType) {
-	let tmpData = {};
-	dataList.value.forEach((item, index) => {
-		if (item._id == roomId) {
-			tmpData.index = index;
-			if (actionType == 'replace') {
-				tmpData.room = dataList.value[index];
-				return;
-			}
-			if (actionType == 'slice') {
-				tmpData.room = dataList.value.splice(index, 1)[0];
-				return;
-			}
-		}
-	});
-	return tmpData;
 }
 </script>
 
@@ -601,7 +472,7 @@ function getRoomFromDataList(roomId, actionType) {
 		padding: 0 20rpx;
 		overflow: hidden;
 
-		.msg-list-item {
+		.list-item {
 			position: relative;
 			width: 100%;
 			height: 130rpx;
@@ -645,7 +516,6 @@ function getRoomFromDataList(roomId, actionType) {
 				width: 136rpx;
 				height: 100rpx;
 				z-index: 10;
-				@include centering;
 
 				.avatar {
 					width: 96rpx;
@@ -663,7 +533,6 @@ function getRoomFromDataList(roomId, actionType) {
 				justify-content: center;
 				align-items: center;
 				z-index: 10;
-				color: $FontWhite;
 
 				.upBox {
 					// height: 50rpx;
@@ -672,7 +541,6 @@ function getRoomFromDataList(roomId, actionType) {
 					flex-direction: row;
 					justify-content: space-between;
 					align-items: center;
-					margin: 8rpx 0;
 
 					.text {
 						vertical-align: middle;
@@ -688,13 +556,10 @@ function getRoomFromDataList(roomId, actionType) {
 				.downBox {
 					width: 100%;
 					// height: 40rpx;
-					margin: 6rpx 0;
-					@include centering;
-					justify-content: space-between;
 
-					.downBoxMsg {
+					.msg {
 						display: inline-block;
-						// width: calc(100% - 100rpx);
+						width: 100%;
 						vertical-align: middle;
 						// line-height: 40rpx;
 						font-size: 28rpx;
@@ -703,21 +568,6 @@ function getRoomFromDataList(roomId, actionType) {
 						overflow: hidden;
 						text-overflow: ellipsis;
 						color: rgba($FontGrey, 0.7);
-					}
-					.counter {
-						// width: 100rpx;
-						min-width: 36rpx;
-						height: 36rpx;
-						margin-left: 8rpx;
-						padding: 8rpx 10rpx;
-						border-radius: 18rpx;
-						background-color: white;
-						color: $ThemeDark3Color;
-						box-shadow: 3rpx 3rpx 12rpx black;
-						@include centering;
-						.num {
-							font-size: 24rpx;
-						}
 					}
 				}
 			}
@@ -796,15 +646,6 @@ function getRoomFromDataList(roomId, actionType) {
 				width: 100%;
 			}
 		}
-	}
-}
-.empty {
-	text-align: center;
-	color: $FontGrey;
-	.emptyImg {
-		margin-top: -100rpx;
-		width: 40vh;
-		display: block;
 	}
 }
 

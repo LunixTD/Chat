@@ -20,17 +20,26 @@
 
 <script setup>
 import { onLoad } from '@dcloudio/uni-app';
+import { useStore } from 'vuex';
+const store = useStore();
 onLoad(() => {
 	// uni.clearStorage();
 	const token = uni.getStorageSync('token');
-	// uni.reLaunch({
-	// 	url: '/pages/Main/Main'
-	// });
+	const profile = uni.getStorageSync('profile');
+
 	if (token) {
-		uni.reLaunch({
-			url: '/pages/Main/Main'
-		});
-		console.log('存在token，直接跳转主页面');
+		if (profile.nickname == undefined) {
+			uni.navigateTo({
+				url: `/pages/InitUserInfo/InitUserInfo`,
+				animationType: 'slide-in-bottom'
+			});
+			console.log('昵称没有初始化，跳转到初始化页面');
+		} else {
+			uni.reLaunch({
+				url: '/pages/Main/Main'
+			});
+			console.log('存在token，直接跳转主页面');
+		}
 	} else {
 		console.log('本地缓存无token，重新登录');
 	}
@@ -53,15 +62,18 @@ function toRegisterPage() {
 </script>
 
 <style lang="scss">
+/* #ifdef H5 */
+::-webkit-scrollbar {
+	display: none;
+}
+/* #endif */
 .container {
-	padding-top: 44rpx;
-	display: flex;
-	flex-shrink: 1;
-	flex-direction: column;
-	justify-content: space-evenly;
-	align-items: center;
 	width: 100vw;
 	height: 100vh;
+	padding-top: 44rpx;
+	@include centering;
+	flex-direction: column;
+	justify-content: space-evenly;
 	background-color: $ThemeColor;
 }
 .title {
@@ -76,7 +88,7 @@ function toRegisterPage() {
 }
 .bg {
 	.bgImg {
-		width: 100vw;
+		width: 80vw;
 	}
 }
 .info {
@@ -99,7 +111,7 @@ function toRegisterPage() {
 	}
 }
 .btn_box {
-	font-size: 13px;
+	font-size: 26rpx;
 	color: white;
 	text-align: center;
 
@@ -107,7 +119,7 @@ function toRegisterPage() {
 		width: 90vw;
 		height: 72rpx;
 		line-height: 72rpx;
-		border-radius: 2px;
+		border-radius: 4rpx;
 	}
 
 	.btn_login {

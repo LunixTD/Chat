@@ -4,9 +4,9 @@
 			<!-- 服务器列表 -->
 			<scroll-view scroll-y="true" enable-flex class="serverBox" @touchstart="ontouchstart" @click="aaaa">
 				<view
-					:class="item._id == currServerId ? 'active' : ''"
-					class="serverItem"
 					v-for="(item, index) in serverList"
+					:class="item._id == currServer._id ? 'active' : ''"
+					class="serverItem"
 					:key="index"
 					@touchend=""
 					@click="changeServer(item)"
@@ -23,22 +23,26 @@
 			<!-- 频道列表 -->
 			<view class="channelBox" :style="channelBoxStyle" :class="noServerTag ? 'noServer' : ''">
 				<view class="channelWrapper">
+					<!-- 空服务器时的占位符 -->
 					<view class="noServerView" v-if="noServerTag">
 						<text class="text">您还没有属于自己的服务器哦</text>
 						<text class="text h5">请按左侧的"+"号按钮添加一个服务器吧~</text>
 						<image class="img" src="@/static/bg/noServer-bg.png" mode="widthFix"></image>
 					</view>
+					<!-- 有服务器显示频道列表 -->
 					<view v-if="!noServerTag">
-						<view class="serverTitleBox">
+						<view class="serverTitleBox" hover-class="hover" hover-stay-time="60" @click="openBottomModel('serverArea')">
 							<text class="serverName">{{ currServer.serverName }}</text>
-							<i class="iconfont icon-server-conf"></i>
+							<i class="iconfont icon-more"></i>
 						</view>
 						<view class="channalSearchBox">
 							<view class="inputBox">
 								<input type="text" class="searchInput" placeholder="搜索" disabled />
 								<i class="iconfont icon-search"></i>
 							</view>
-							<i class="iconfont icon-chatroom-addfriend"></i>
+							<view @click="openBottomModel('inviteArea')">
+								<i class="iconfont icon-chatroom-addfriend"></i>
+							</view>
 						</view>
 						<scroll-view scroll-y="true" enable-flex class="channelSort">
 							<MyCollapse
@@ -73,24 +77,33 @@
 		</view>
 
 		<!-- 聊天界面防滚动遮罩 -->
-		<view class="roomMask" @touchstart.prevent="" :style="{ zIndex: chatroomState == 'show' ? 0 : 102 }"></view>
-		<!-- 防透底部遮罩 -->
+		<view class="roomMask" @touchend.prevent="changeChatroomState('show')" :style="{ zIndex: chatroomState == 'show' ? 0 : 102 }"></view>
 
+		<!-- 防透底部遮罩，因为原理是右侧界面滑动到左侧，要给个底面，防止过度滑动的时候显示到底部UI界面 -->
 		<view class="leftContentMask" :class="chatroomState == 'show' ? 'show' : 'hide'"></view>
 
 		<!-- 聊天房间 -->
-		<view style="zindex: 101"><Room class="roomBox" v-show="serverList.length != 0" :class="chatroomState == 'show' ? 'show' : 'hide'"></Room></view>
+		<Room v-if="serverList.length != 0"></Room>
 	</view>
 </template>
 
 <script setup>
-import { onBackPress, onPageScroll, onLoad } from '@dcloudio/uni-app';
-import { ref, computed, watch, nextTick, getCurrentInstance } from 'vue';
+import { onBackPress, onPageScroll, onLoad, onHide } from '@dcloudio/uni-app';
+import { ref, computed, onUpdated, watch, watchEffect, nextTick, getCurrentInstance } from 'vue';
 import { useStore } from 'vuex';
 import api from '@/services/request.js';
 import { useSystemInfo } from '@/utils/hooks/useSystemInfo.js';
+import { asyncUserProfile } from '@/utils/hooks/useAsyncUserProfile.js';
 import Room from './Room.vue';
-import { debounce, throttle } from 'lodash';
+
+// 禁止默认返回
+// 处理返回
+onBackPress(() => {
+	if (chatroomState.value == 'show') {
+		changeChatroomState('hide');
+	}
+	return true;
+});
 
 const statusBarHeight = useSystemInfo('statusBarHeight');
 const channelBoxStyle = computed(() => {
@@ -99,31 +112,23 @@ const channelBoxStyle = computed(() => {
 	};
 });
 
+const instance = getCurrentInstance();
 const store = useStore();
+const chatState = useState('chat', ['serverList', 'currServer', 'currChannel']);
+const { serverList, currServer, currChannel } = chatState;
+const uiState = useState('ui', ['chatroomState', 'bottomModalRef']);
+const { chatroomState, bottomModalRef } = uiState;
 const activeInfo = computed(() => {
 	return store.state.user.profile.activeInfo;
-});
-const chatroomState = computed(() => {
-	return store.state.ui.chatroomState;
-});
-const serverList = computed(() => {
-	return store.state.chat.serverList;
-});
-const currServerId = computed(() => {
-	return store.state.chat.currServerId;
-});
-const currServer = computed(() => {
-	return store.state.chat.currServer;
-});
-const currChannel = computed(() => {
-	return store.state.chat.currChannel;
-});
-const channelMsgList = computed(() => {
-	return store.state.message.channelMsgList;
 });
 const noServerTag = computed(() => {
 	// console.log(serverList.value.length);
 	return serverList.value.length == 0 ? true : false;
+});
+
+const containerStyle = computed(() => {
+	let style = chatroomState.value === 'show' ? { overflow: 'visible' } : { overflow: 'hidden' };
+	return style;
 });
 
 const myCollapseState = (sortItem) => {
@@ -141,25 +146,6 @@ const myCollapseState = (sortItem) => {
 	}
 };
 
-async function getServerList() {
-	// 增加服务器后服务器列表变动,需要上传一次用户信息
-	const profile = uni.getStorageSync('profile');
-	// console.log(profile);
-	store.dispatch('user/changeProfile', profile);
-	// console.log(profile);
-
-	// 获取服务器列表
-	const serverListRes = await api.getServerList({
-		creator: profile._id
-	});
-	// 初始化数据
-	if (serverListRes.data.length !== 0) {
-		store.dispatch('chat/updateServerList', serverListRes.data);
-		// store.dispatch('chat/changeCurrServer', profile.activeServer);
-		// store.dispatch('chat/changeCurrChannel', profile.activeChannel);
-	}
-}
-
 // 初始化请求数据
 onLoad(() => {
 	// 清空缓存数据
@@ -171,16 +157,44 @@ onLoad(() => {
 	getServerList();
 });
 
+// 每次更新时把最后消息数据清空,防止切换tab时反复触发最后消息插入动画
+onUpdated(() => {
+	store.dispatch('message/changeLastMsg', {});
+});
+
+// 获取最新用户数据，从数据中剥取服务器列表
+async function getServerList() {
+	const profile = uni.getStorageSync('profile');
+	// 获取服务器列表
+	const { data } = await api.getServerList({
+		uid: profile._id
+	});
+	const serverIdArr = data.serverList.map((item) => {
+		return item._id;
+	});
+
+	await asyncUserProfile('updateLocal', {
+		activeServer: data.activeServer,
+		activeChannel: data.activeChannel,
+		activeInfo: data.activeInfo,
+		serverList: serverIdArr
+	});
+
+	// console.log(serverListRes);
+	// 初始化数据
+	if (data.length !== 0) {
+		store.dispatch('chat/updateServerList', data.serverList);
+	}
+}
+
+// 更换服务器
 function changeServer(server) {
-	store.dispatch('chat/changeCurrServer', server);
-	// console.log(serverId);
+	const profile = uni.getStorageSync('profile');
+	if (profile.activeServer != server._id) {
+		console.log('切换服务器');
+		store.dispatch('chat/changeCurrServer', server);
+	}
 }
-
-function changeChannel(channel) {
-	store.dispatch('ui/changeChatroomState', 'show');
-	store.dispatch('chat/changeCurrChannel', channel);
-}
-
 // 添加服务器
 function addServer() {
 	uni.navigateTo({
@@ -189,73 +203,36 @@ function addServer() {
 		animationDuration: 300
 	});
 }
-
-// 禁止默认返回
-// 处理返回
-onBackPress(() => {
-	return true;
-});
-
-// 让左侧窗口跟着右侧聊天窗口滚动，造成只有右侧窗口滚动的假象
-const scrollTop = ref(0);
-const scrollTopTmp = ref(0);
-const screenHeight = useSystemInfo('screenHeight');
-onPageScroll((e) => {
-	// scrollTop.value = e.scrollTop;
-	scrollTopTmp.value = e.scrollTop;
-	if (e.scrollTop < screenHeight.value / 2) {
-		// console.log(channelMsgList.value.slice(-1)[0]._id);
-		getHistoryMsg();
+// 更换频道
+function changeChannel(channel) {
+	const profile = uni.getStorageSync('profile');
+	// console.log(profile.activeChannel, channel._id);
+	if (profile.activeChannel != channel._id) {
+		console.log('切换频道');
+		store.dispatch('chat/changeCurrChannel', channel);
 	}
-});
+	changeChatroomState('show');
+}
+function changeChatroomState(state) {
+	store.dispatch('ui/changeChatroomState', state);
+}
 
-// 向上获取历史消息
-const getHistoryMsg = throttle(async () => {
-	let fromId = channelMsgList.value.slice(0)[0]._id;
-	console.log(fromId);
-	const msgList = await api.getMsgList({
-		origin: 'channel',
-		id: currChannel.value._id,
-		fromId: fromId,
-		num: 10
-	});
-	// console.log(msgList);
-	store.dispatch('message/updateChannelMsgList', msgList.data.reverse());
-}, 3000);
+// 邀请其他人加入服务器
+function openBottomModel(areaName) {
+	// console.log(bottomModalRef.value);
+	bottomModalRef.value.openBottomModal(areaName);
+}
 
-watch(chatroomState, (val) => {
-	if (val == 'hide') {
-		scrollTop.value = scrollTopTmp.value;
-		nextTick(() => {
-			setTimeout(() => {
-				uni.pageScrollTo({
-					scrollTop: scrollTopTmp.value,
-					duration: 0
-				});
-			}, 1000);
-		});
-	}
-});
-
-const containerStyle = computed(() => {
-	let style = chatroomState.value === 'show' ? { overflow: 'visible' } : { overflow: 'hidden' };
-	return style;
-});
-
-// const leftContentStyle = computed(() => {
-// 	return {
-// 		// top: scrollTop.value + 'px'
-// 		transform: `translateY(${scrollTop.value}px)`
-// 	};
-// });
+// 测试用
 function aaaa() {}
 function ontouchstart() {
-	console.log('点击');
+	// console.log('点击');
 }
 </script>
 
 <style lang="scss">
 .chat-container {
+	touch-action: none;
 	position: relative;
 	width: 100vw;
 	height: auto !important;
@@ -263,7 +240,7 @@ function ontouchstart() {
 	@include centering;
 	justify-content: flex-start;
 	padding-left: calc(100vw - 120rpx + 20rpx);
-	overflow-x: hidden;
+	overflow: hidden;
 	.leftContent {
 		position: fixed;
 		width: 100%;
@@ -385,6 +362,9 @@ function ontouchstart() {
 				justify-content: space-between;
 				padding: 0 40rpx;
 				margin-bottom: 20rpx;
+				&.hover {
+					color: $FontGrey;
+				}
 				.serverName {
 					font-size: 36rpx;
 					font-weight: 600;

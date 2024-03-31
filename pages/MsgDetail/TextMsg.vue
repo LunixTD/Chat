@@ -18,14 +18,16 @@ const emojiList = computed(() => {
 	return store.state.chat.emojiList;
 });
 
-// 文本消息(处理文本)
+// 文本消息(处理文本) ⭐⭐⭐
 function getContentHtml(content) {
-	let reg = /(?<=\[)[^\]]*(?=\])/g;
+	let reg = new RegExp('\\[([^\\[\\]]+)\\]', 'g');
+	// console.log(reg);
+	let clearBracket = new RegExp('\\[|]', 'g');
 	const matchList = content.match(reg);
 	if (matchList !== null) {
 		let emojiArr = [];
 		for (let i = 0; i < matchList.length; i++) {
-			let emojiKey = matchList[i];
+			let emojiKey = matchList[i].replace(clearBracket, '');
 			if (emojiList.value[emojiKey] != undefined) {
 				emojiArr.push(emojiKey);
 			}

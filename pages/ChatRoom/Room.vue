@@ -1,6 +1,6 @@
 <template>
 	<view class="room-container">
-		<view class="header" :class="chatroomState == 'show' ? 'show' : 'hide'" :style="headerStyle">
+		<view class="header" :style="headerStyle" :class="chatroomState == 'show' ? 'show' : 'hide'">
 			<view class="headerBox">
 				<view class="back">
 					<i class="iconfont icon-back2" @click="headerBack"></i>
@@ -8,7 +8,7 @@
 				{{ currChannel.channelName ? currChannel.channelName : '' }}
 			</view>
 		</view>
-		<HeaderPlaced></HeaderPlaced>
+		<!-- <HeaderPlaced></HeaderPlaced> -->
 		<!-- <scroll-view class="roomMsgDetail" scroll-y="true">
 			<view class="roomInfo">
 				<image class="roomAvatar" src="../../static/Index-bg.png" mode="widthFix"></image>
@@ -21,7 +21,7 @@
 		</view>
 		<view class="msgInputBox" :class="chatroomState == 'show' ? 'show' : 'hide'">
 			<!-- origin为底部输入框的归属位置，当前服务于频道页面 -->
-			<MsgBottomBox origin="channel"></MsgBottomBox>
+			<MsgBottomBox origin="channel" v-if="chatroomState == 'show' ? true : false"></MsgBottomBox>
 		</view>
 	</view>
 </template>
@@ -38,30 +38,45 @@ const headerStyle = useStatusBarHeightStyle(88);
 
 // 消息页面动画相关
 const store = useStore();
-const { scrollTop } = defineProps(['scrollTop']);
+// const { scrollTop } = defineProps(['scrollTop']);
 
-function headerBack() {
-	store.dispatch('ui/changeChatroomState', 'hide');
-}
 const chatroomState = computed(() => {
 	return store.state.ui.chatroomState;
 });
 const currChannel = computed(() => {
 	return store.state.chat.currChannel;
 });
+
+function headerBack() {
+	store.dispatch('ui/changeChatroomState', 'hide');
+}
 </script>
 
 <style lang="scss">
 .room-container {
 	position: relative;
 	width: 100vw;
-	// height: 100%;
-	// height: 100vh;
-	min-height: 100vh;
+	height: 100vh;
 	@include centering;
 	flex-direction: column;
 	justify-content: space-between;
 	background-color: $ThemeDark3Color;
+	transition: all ease 0.3s;
+
+	&.show {
+		transform: translateX(calc(120rpx - 20rpx - 100vw));
+	}
+	&.hide {
+		transform: translateX(0);
+	}
+	// overflow: hidden;
+
+	// &.show {
+	// 	transform: translateX(0);
+	// }
+	// &.hide {
+	// 	transform: translateX(calc(100vw - 120rpx + 20rpx));
+	// }
 	// 底部输入框显示隐藏
 	// & .show {
 	// 	transform: translateX(0);
@@ -158,7 +173,7 @@ const currChannel = computed(() => {
 		bottom: 0;
 		width: 100vw;
 		height: 88rpx;
-		background-color: red;
+		// background-color: red;
 		transition: all ease 0.3s;
 		z-index: 101;
 		// 底部输入框显示隐藏

@@ -45,12 +45,12 @@
 			</view>
 			<view class="itemBox" v-show="pageState == 'join'">
 				<text class="title">邀请链接</text>
-				<MyInput v-model:modelValue="joinCode" type="text" placeholder="输入邀请码或邀请链接" :inputStyle="inputStyle" :clearIconStyle="clearIconStyle"></MyInput>
+				<MyInput v-model="joinCode" type="text" placeholder="输入邀请码或邀请链接" :inputStyle="inputStyle" :clearIconStyle="clearIconStyle"></MyInput>
 				<view class="infoBox">
 					<text class="title sm">邀请码为8位英文字母和数字的随机组合,例&nbsp;</text>
 					<text class="title hl sm">JkVmzmks</text>
 				</view>
-				<view class="btnBoxWrapper">
+				<view class="btnBoxWrapper" @click="joinServer">
 					<view class="btnMask" v-show="joinCode == ''"></view>
 					<TouchBox :touchStartStyle="btnStyle" :touchEndStyle="touchStyle">
 						<view class="btnBox">
@@ -74,6 +74,7 @@ import varible from '@/styles/variable.js';
 import api from '@/services/request.js';
 import { useStore } from 'vuex';
 import { useCopper } from '@/utils/hooks/useCropper.js';
+import { asyncUserProfile } from '../../utils/hooks/useAsyncUserProfile';
 
 const { ThemeDark1Color, ThemeDark3Color, ThemeDark5Color, ThemeDarkPop, BtnPrimaryColor, BtnPrimaryPressColor } = varible;
 const listItemStyle = {
@@ -158,9 +159,9 @@ const serverName = ref('');
 const { url, imgInfo, cropedImg: serverAvatar, cropperState, chooseImage, cancelCrop, imgCropEnd } = useCopper();
 
 // 创建服务器
+const profile = uni.getStorageSync('profile');
 async function createServer() {
 	// if (serverName.value == '' || serverAvatar.value == '') return;
-	const profile = uni.getStorageSync('profile');
 	const createRes = await api.createServer({
 		serverName: serverName.value,
 		avatar: imgInfo.value,
@@ -172,15 +173,27 @@ async function createServer() {
 		const userRes = await api.asyncUserProfile({
 			id: profile._id
 		});
+		// 这里仅需本地更新就好
 		uni.setStorageSync('profile', userRes.data);
 		store.dispatch('user/changeProfile', userRes.data);
 		// 请求服务器页面刷新服务器列表
 		uni.$emit('refreshServerList');
-		// uni.navigateTo({
-		// 	url: '/pages/Main/Main',
-		// 	animationType: 'zoom-fade-out',
-		// 	animationDuration: 240
-		// });
+		uni.navigateBack();
+	}
+}
+
+// 加入服务器
+async function joinServer() {
+	const joinRes = await api.joinServer({
+		inviteId: joinCode.value,
+		// applicantId: profile._id
+		uid: profile._id
+	});
+
+	if (joinRes.statusCode == 200) {
+		await asyncUserProfile('updateLocal', joinRes.data);
+		// 请求服务器页面刷新服务器列表
+		uni.$emit('refreshServerList');
 		uni.navigateBack();
 	}
 }

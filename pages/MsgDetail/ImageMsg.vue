@@ -1,15 +1,28 @@
 <template>
 	<view class="msg">
-		<image :src="api.target_url + imgInfo.thumb" :style="msgImgStyle" :mode="imgMode" class="msgImg" @click="previewImage(api.target_url + imgInfo.url)"></image>
+		<image
+			:src="api.target_url + imgInfo.thumb"
+			:style="msgImgStyle"
+			:mode="imgMode"
+			class="msgImg"
+			@load="onImgLoaded"
+			@click="previewImage(api.target_url + imgInfo.url)"
+		></image>
 	</view>
 </template>
 
 <script setup>
 import { defineProps, ref, computed } from 'vue';
 import api from '../../services/request.js';
-const { item } = defineProps(['item']);
+import { useStore } from 'vuex';
+const { item, msgIndex } = defineProps(['item', 'msgIndex']);
 const { imgInfo } = item;
 
+// console.log(item);
+const store = useStore();
+// const imgSrc = computed(() => {
+
+// })
 // // #ifndef H5
 // const src = imgInfo.thumb;
 // // #endif
@@ -73,6 +86,10 @@ function previewImage(src) {
 			}
 		}
 	});
+}
+
+function onImgLoaded() {
+	uni.$emit('updateVirtualListHeight', msgIndex);
 }
 </script>
 

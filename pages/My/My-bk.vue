@@ -1,13 +1,23 @@
 <template>
-	<scroll-view scroll-y="true" class="my-container">
+	<scroll-view
+		scroll-y="true"
+		:scroll-top="scrollTop"
+		:scroll-with-animation="scrollAnime"
+		class="my-container"
+		@scrolltoupper="onScrolltoupper"
+		@scroll="onscroll"
+		@touchend="ontouchend"
+	>
 		<!-- <StatusBarBox></StatusBarBox> -->
-
-		<view class="my-bg">
-			<view class="cfgBtn" @click="gotoPage('UserConfig')">
+		<view class="placedBox" :style="bgStyle">
+			<!-- <image class="bgImg" src="../../static/bg/noServer-bg.png" mode="widthFix"></image> -->
+		</view>
+		<!-- <view class="my-bg">
+			<view class="cfgBtn">
 				<i class="iconfont icon-shezhi"></i>
 			</view>
-			<view class="myBg">
-				<image class="myBgImg" :src="bgSrc" mode="widthFix"></image>
+			<view class="bg">
+				<image class="bgImg" :src="bgSrc" mode="widthFix"></image>
 			</view>
 			<view class="avatarBox">
 				<image class="my-avatar" :src="avatarSrc" mode="widthFix"></image>
@@ -15,7 +25,7 @@
 					<i class="iconfont" :class="'icon-ustate-' + uState"></i>
 				</view>
 			</view>
-		</view>
+		</view> -->
 		<view class="my-box">
 			<view class="listBox">
 				<view class="my-curr-state">
@@ -61,7 +71,7 @@
 						</view>
 					</view>
 				</view>
-				<view class="btnBox" v-if="profile.profileStr == '' || profile.profileStr == undefined" @click="gotoPage('Profile')">
+				<view class="btnBox" v-if="profile.profileStr == '' || profile.profileStr == undefined">
 					<TouchBox :customStyle="customStyle" :touchStartStyle="btnStyle" :touchEndStyle="btnPressStyle">
 						<text>开始</text>
 					</TouchBox>
@@ -79,8 +89,9 @@
 				</view>
 				<i class="iconfont icon-back"></i>
 			</view>
+			<TabBarPlaced></TabBarPlaced>
+			<view class="bgHoverPlaced" :style="{ height: bgCoverHeight + 'px' }"></view>
 		</view>
-		<TabBarPlaced></TabBarPlaced>
 	</scroll-view>
 </template>
 
@@ -89,7 +100,9 @@ import { ref, computed, nextTick, onMounted } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useStore } from 'vuex';
 import api from '@/services/request.js';
-
+import { useSystemInfo } from '@/utils/hooks/useSystemInfo.js';
+import { touchFeedback } from '@/utils/tools.js';
+import { update } from 'lodash';
 const store = useStore();
 
 const profile = computed(() => {
@@ -129,11 +142,84 @@ function gotoPage(page) {
 }
 
 const getCreateDate = computed(() => {
+	// console.log(profile);
 	const createDate = new Date(profile.value.createTime);
 	let year = createDate.getFullYear();
 	let month = createDate.getMonth() + 1;
 	let day = createDate.getDate();
 	return `${year}年 ${month}月${day}日`;
+});
+
+const bgCoverHeight = uni.upx2px(400);
+const baseRate = 0.2 / bgCoverHeight;
+const tmpHeight = ref(bgCoverHeight);
+const scaleNum = ref(100);
+const scrollTop = ref(0);
+const tmpScrollTop = ref(0);
+const startPosY = ref(0);
+const distance = ref(0);
+const scrollAnime = ref(false);
+const timer = ref(null);
+
+onLoad(() => {
+	uni.$on('pagePos', () => {
+		// setTimeout(() => {
+		// 	scrollTop.value = bgCoverHeight;
+		// 	scrollAnime.value = true;
+		// 	store.commit('ui/changePagemyInitState', true);
+		// }, 0);
+	});
+});
+
+// 因为uniapp的scrollview组件无法初始化赋值scrollTop值，故用此旁门左道
+setTimeout(() => {
+	scrollTop.value = bgCoverHeight;
+	scrollAnime.value = true;
+	store.commit('ui/changePagemyNeedInit', false);
+}, 0);
+
+function onScrolltoupper() {
+	// touchFeedback();
+}
+
+function ontouchend() {
+	nextTick(() => {
+		if (tmpScrollTop.value <= bgCoverHeight) {
+			scrollTop.value = tmpScrollTop.value;
+			nextTick(() => {
+				scrollTop.value = bgCoverHeight;
+			});
+		}
+		// console.log(scaleNum.value);
+		timer.value && clearInterval(timer.value);
+		timer.value = setInterval(() => {
+			scaleNum.value = scaleNum.value - 1.7;
+			// console.log(scaleNum.value);
+			if (scaleNum.value <= 100) {
+				scaleNum.value = 100;
+				clearInterval(timer.value);
+			}
+		}, 16);
+		tmpScrollTop.value = bgCoverHeight;
+	});
+}
+function onscroll(e) {
+	// console.log(bgCoverHeight, e.detail.scrollTop);
+	if (e.detail.deltaY > 0) {
+		tmpScrollTop.value = e.detail.scrollTop;
+		distance.value = bgCoverHeight - e.detail.scrollTop;
+		scaleNum.value = (distance.value * baseRate + 1) * 100;
+	}
+}
+const bgStyle = computed(() => {
+	return {
+		backgroundSize: `${scaleNum.value}% auto`
+	};
+});
+const containerStyle = computed(() => {
+	return {
+		transform: `translateY(${distance.value}px)`
+	};
 });
 </script>
 
@@ -143,16 +229,30 @@ const getCreateDate = computed(() => {
 	height: 100vh;
 	background-color: $ThemeDark3Color;
 
+	.placedBox {
+		width: 100%;
+		height: 700rpx;
+		background-color: coral;
+		background-image: url(@/static/bg/noServer-bg.png);
+		background-repeat: no-repeat;
+		background-size: 100% auto;
+		background-position: center center;
+		// transition: all linear 0.03s;
+		.bgImg {
+			width: 100%;
+		}
+	}
+
 	.my-bg {
 		position: relative;
 		width: 100vw;
-		height: 500rpx;
+		height: 400rpx;
 		// background-color: lightblue;
 
 		.cfgBtn {
 			position: absolute;
 			right: 30rpx;
-			top: calc(var(--status-bar-height) + 10px);
+			top: calc(var(--status-bar-height) + 10rpx);
 			width: 70rpx;
 			height: 70rpx;
 			line-height: 70rpx;
@@ -166,12 +266,12 @@ const getCreateDate = computed(() => {
 			}
 		}
 
-		.myBg {
+		.bg {
 			width: 100%;
-			height: 400rpx;
+			height: 300rpx;
 			// background-color: lightcoral;
 			z-index: 10;
-			.myBgImg {
+			.bgImg {
 				width: 100%;
 			}
 		}
@@ -225,7 +325,8 @@ const getCreateDate = computed(() => {
 	}
 
 	.my-box {
-		padding: 30rpx 30rpx;
+		// height: 100vh;
+		padding: 0 30rpx;
 		padding-bottom: 0;
 		font-size: 24rpx;
 		.btnBox {

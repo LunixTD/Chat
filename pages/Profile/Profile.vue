@@ -35,7 +35,7 @@
 				<view class="editItem">
 					<text class="iteminfo">昵称</text>
 					<view class="inputBox">
-						<MyInput placeholder="写个昵称?" v-model="nickname" :clearIconStyle="true"></MyInput>
+						<MyInput placeholder="写个昵称?" :inputStyle="customStyle" v-model="nickname" :clearIconStyle="true"></MyInput>
 					</view>
 				</view>
 				<view class="editItem">
@@ -49,7 +49,7 @@
 		</view>
 	</view>
 	<view class="cropper" :class="bgCropperState ? 'show' : 'hide'">
-		<ksp-cropper mode="fixed" :width="750" :height="300" :maxWidth="1024" :maxHeight="1024" :url="bgUrl" @cancel="bgCancelCrop" @ok="bgImgCropEnd"></ksp-cropper>
+		<ksp-cropper mode="fixed" :width="750" :height="400" :maxWidth="1024" :maxHeight="1024" :url="bgUrl" @cancel="bgCancelCrop" @ok="bgImgCropEnd"></ksp-cropper>
 	</view>
 	<view class="cropper" :class="avatarCropperState ? 'show' : 'hide'">
 		<ksp-cropper mode="fixed" :width="200" :height="200" :maxWidth="1024" :maxHeight="1024" :url="avatarUrl" @cancel="avatarCancelCrop" @ok="avatarImgCropEnd"></ksp-cropper>
@@ -60,10 +60,10 @@
 import { ref, computed, onMounted, getCurrentInstance, watch } from 'vue';
 import { useStore } from 'vuex';
 import { onNavigationBarButtonTap } from '@dcloudio/uni-app';
-import ListBox from '../My/ListBox.vue';
 import { useCopper } from '@/utils/hooks/useCropper.js';
 import variable from '@/styles/variable.js';
 import api from '@/services/request.js';
+import { asyncUserProfile } from '@/utils/hooks/useAsyncUserProfile.js';
 
 onNavigationBarButtonTap((e) => {
 	switch (e.tag) {
@@ -166,20 +166,16 @@ async function saveProfile() {
 		if (profileStr.value != profile.profileStr) {
 			tmpData.profileStr = profileStr.value;
 		}
+
 		// console.log(tmpData);
-		const updateRes = await api.asyncUserProfile({
-			id: profile._id,
-			data: tmpData
-		});
+		// 注意数据格式是否正确,不然会导致数据格式错乱，后续调用到的地方出错
+		const updateRes = await asyncUserProfile('updateProfile', tmpData);
 		if (updateRes.statusCode == 200) {
 			console.log('个人资料修改成功!');
 			instance.refs.pop.showPop('资料修改成功!!');
-			// console.log(updateRes.data);
-			uni.setStorageSync('profile', updateRes.data);
-			store.dispatch('user/changeProfile', updateRes.data);
 			setTimeout(() => {
 				uni.navigateBack();
-			}, 3500);
+			}, 2400);
 		}
 	} else {
 		console.log('没有本地用户数据，无法更新数据！');
@@ -207,7 +203,7 @@ page {
 	.my-bg {
 		position: relative;
 		width: 100vw;
-		height: 400rpx;
+		height: 500rpx;
 		// background-color: lightblue;
 
 		.cfgBtn {
@@ -219,7 +215,7 @@ page {
 			line-height: 70rpx;
 			text-align: center;
 			border-radius: 50%;
-			background-color: rgba($ThemeDark3Color, 0.8);
+			background-color: $ThemeDark3Color;
 			z-index: 20;
 			.iconfont {
 				display: block;
@@ -229,7 +225,7 @@ page {
 
 		.bg {
 			width: 100%;
-			height: 300rpx;
+			height: 400rpx;
 			// background-color: lightcoral;
 			overflow: hidden;
 			z-index: 10;

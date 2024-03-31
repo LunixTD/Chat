@@ -1,5 +1,6 @@
 <template>
 	<view class="initContainer">
+		<MyPopup ref="pop"></MyPopup>
 		<HeaderPlaced></HeaderPlaced>
 		<text class="text">为自己取一个昵称吧~</text>
 		<MyInput v-model="nickname" :inputStyle="inputStyle" maxlength="20" :onInput="onInput"></MyInput>
@@ -9,55 +10,56 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, getCurrentInstance } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { useStore } from 'vuex';
 import api from '@/services/request.js';
+import { asyncUserProfile } from '@/utils/hooks/useAsyncUserProfile.js';
+
+const pop = ref(null);
+const instance = getCurrentInstance();
 const inputStyle = {
 	width: '70vw',
 	height: '100rpx',
-	textAlign: 'center'
+	textAlign: 'center',
+	fontSize: '36rpx'
 };
-const store = useStore();
 
-const token = computed(() => {
-	return store.state.user.token;
-});
-
-const text1 = '该昵称已经被使用!';
-const text2 = '昵称不能为空!';
-const altText = ref(text1);
+const altText = ref('该昵称已经被使用!');
 const nickname = ref('');
 const showState = ref(false);
+const nicknameRegex = /^[\u4e00-\u9fa5A-Za-z0-9]{3,13}$/;
 async function onClick() {
 	if (nickname.value == '') {
-		altText.value = text2;
+		altText.value = '昵称不能为空!';
 		showState.value = true;
+	}
+	if (!nicknameRegex.test(nickname.value)) {
+		altText.value = '昵称不合法！(昵称只能由3-13位的中英文数字组成！)';
+		showState.value = true;
+		return;
 	}
 	const checkRes = await api.checkUser({
 		nickname: nickname.value
 	});
 	if (checkRes.data.code !== 200) {
-		altText.value = text1;
+		altText.value = '该昵称已经被使用!';
 		showState.value = true;
 	} else {
+		const updateRes = await asyncUserProfile('updateProfile', {
+			nickname: nickname.value
+		});
+
 		console.log('设置昵称成功');
-		const profile = uni.getStorageSync('profile');
-		const updateRes = await api.asyncUserProfile({
-			id: profile._id,
-			data: {
-				nickname: nickname.value
-			}
-		});
-		// 确保用户初始化设置后再存入token
-		if (updateRes) {
-			uni.setStorageSync('token', token.value);
+		instance.refs.pop.showPop(`昵称设置成功！`);
+
+		if (updateRes.statusCode == 200) {
+			uni.navigateTo({
+				url: '/pages/Main/Main',
+				animationType: 'zoom-fade-out',
+				animationDuration: 240
+			});
 		}
-		uni.navigateTo({
-			url: '/pages/Main/Main',
-			animationType: 'zoom-fade-out',
-			animationDuration: 240
-		});
+
 		// console.log(updateRes);
 	}
 }
@@ -84,7 +86,7 @@ function onInput() {
 	.alert {
 		color: orangered;
 		font-size: 28rpx;
-		margin-top: 12rpx;
+		margin-top: 14rpx;
 		opacity: 0;
 		&.show {
 			opacity: 1;
@@ -95,12 +97,12 @@ function onInput() {
 	}
 	.btn {
 		width: 70vw;
-		height: 88rpx;
-		line-height: 88rpx;
+		height: 98rpx;
+		line-height: 98rpx;
 		background-color: $ThemePrimaryColor;
-		margin-top: 20rpx;
+		margin-top: 22rpx;
 		border-radius: 6rpx;
-		font-size: 30rpx;
+		font-size: 36rpx;
 	}
 }
 </style>

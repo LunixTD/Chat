@@ -1,27 +1,40 @@
 <template>
-	<view class="msgListItemContainer" :class="getRenderIf('additionMsg') ? 'margin' : ''">
-		<MsgTimeline v-if="getRenderIf('timeline')"></MsgTimeline>
+	<view class="msgListItemContainer" :class="msgDisplayType == 'additionMsg' ? 'margin' : ''">
+		<MsgTimeline v-if="item.showDateLine"></MsgTimeline>
 		<view class="msgBox">
-			<view class="msg-left" v-if="getRenderIf('fistMsg')">
+			<view class="msg-left" v-if="msgDisplayType == 'newMsg'">
 				<image class="msg-avatar" v-if="creator.avatarInfo" :src="api.target_url + creator.avatarInfo.thumb" mode="widthFix"></image>
 				<text class="msg-avatar-text" v-if="!creator.avatarInfo">{{ creator.nickname.substring(0, 1) }}</text>
 			</view>
 			<view class="msg-right" @longpress="showModal">
-				<TouchBox class="first-msg" v-if="getRenderIf('fistMsg')" :touchStartStyle="customStyle" :touchEndStyle="touchStyle">
-					<view class="u-info">
-						<text class="uname">{{ creator.nickname }}</text>
-						<text class="utag">管理员</text>
-						<text class="date">{{ formatTime(createTime) }}</text>
+				<view class="first-msg" v-if="msgDisplayType == 'newMsg'">
+					<TouchBox :touchStartStyle="customStyle" :touchEndStyle="touchStyle">
+						<view class="u-info">
+							<text class="uname">{{ creator.nickname }}</text>
+							<text class="utag">管理员</text>
+							<text class="date">{{ formatTime(createTime, 'yyyy/MM/dd HH:mm:ss') }}</text>
+						</view>
+						<TextMsg :item="item" v-if="type == 'text'"></TextMsg>
+						<ImageMsg :item="item" :msgIndex="msgIndex" v-if="type == 'image'"></ImageMsg>
+						<VoiceMsg :item="item" v-if="type == 'voice'"></VoiceMsg>
+					</TouchBox>
+				</view>
+				<view class="addition-msg-list" v-if="msgDisplayType == 'newMsg'">
+					<view class="addition-msg" v-for="(addMsgItem, addMsgIndex) in additionMsg" :key="addMsgItem._id">
+						<TouchBox :touchStartStyle="customStyle" :touchEndStyle="touchStyle">
+							<TextMsg :item="addMsgItem" v-if="addMsgItem.type == 'text'"></TextMsg>
+							<ImageMsg :item="addMsgItem" :msgIndex="msgIndex" v-if="addMsgItem.type == 'image'"></ImageMsg>
+							<VoiceMsg :item="addMsgItem" v-if="addMsgItem.type == 'voice'"></VoiceMsg>
+						</TouchBox>
 					</view>
-					<TextMsg :item="item" v-if="type == 'text'"></TextMsg>
-					<ImageMsg :item="item" v-if="type == 'image'"></ImageMsg>
-					<VoiceMsg :item="item" v-if="type == 'voice'"></VoiceMsg>
-				</TouchBox>
-				<TouchBox class="addition-msg" v-if="getRenderIf('additionMsg')" :touchStartStyle="customStyle" :touchEndStyle="touchStyle">
-					<TextMsg :item="item" v-if="type == 'text'"></TextMsg>
-					<ImageMsg :item="item" v-if="type == 'image'"></ImageMsg>
-					<VoiceMsg :item="item" v-if="type == 'voice'"></VoiceMsg>
-				</TouchBox>
+				</view>
+				<view class="addition-msg" v-if="msgDisplayType == 'additionMsg'">
+					<TouchBox :touchStartStyle="customStyle" :touchEndStyle="touchStyle">
+						<TextMsg :item="item" v-if="type == 'text'"></TextMsg>
+						<ImageMsg :item="item" :msgIndex="msgIndex" v-if="type == 'image'"></ImageMsg>
+						<VoiceMsg :item="item" v-if="type == 'voice'"></VoiceMsg>
+					</TouchBox>
+				</view>
 			</view>
 		</view>
 	</view>
@@ -36,10 +49,8 @@ import TextMsg from './TextMsg.vue';
 import ImageMsg from './ImageMsg.vue';
 import VoiceMsg from './VoiceMsg.vue';
 
-const { item, msgStyle } = defineProps(['item', 'msgStyle']);
-const { uid, creator, createTime, type } = item;
-
-// const
+const { item, msgIndex, msgStyle } = defineProps(['item', 'msgIndex', 'msgStyle']);
+const { uid, creator, createTime, type, msgDisplayType, additionMsg } = item;
 
 const customStyle = {
 	backgroundColor: 'transparent'
@@ -86,7 +97,7 @@ export default {
 
 <style lang="scss">
 .msgListItemContainer {
-	margin-top: 36rpx;
+	// transform: scaleY(-1);
 	&.margin {
 		margin: 0;
 	}
@@ -104,7 +115,7 @@ export default {
 	.msg-left {
 		position: absolute;
 		left: 20rpx;
-		top: 10rpx;
+		top: 46rpx;
 		width: 84rpx;
 		height: 84rpx;
 		// background-color: red;
@@ -113,15 +124,16 @@ export default {
 		.msg-avatar {
 			width: 84rpx;
 			height: 84rpx;
-			border-radius: 50%;
+			border-radius: 42rpx;
 		}
 		.msg-avatar-text {
 			display: block;
 			width: 84rpx;
 			height: 84rpx;
+			font-size: 32rpx;
 			line-height: 84rpx;
 			text-align: center;
-			border-radius: 50%;
+			border-radius: 42rpx;
 			background-color: $ThemeLightColor;
 		}
 	}
@@ -136,6 +148,7 @@ export default {
 
 		// 新消息的样式
 		.first-msg {
+			margin-top: 36rpx;
 			box-sizing: border-box;
 			width: 100%;
 			transition: background ease 0.2s;
@@ -171,6 +184,10 @@ export default {
 					margin-bottom: 2rpx;
 				}
 			}
+		}
+		.addition-msg-list {
+			box-sizing: border-box;
+			width: 100%;
 		}
 		// 追加消息的样式
 		.addition-msg {
