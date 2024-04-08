@@ -28,24 +28,27 @@ import { onPageScroll, onLoad, onShow } from '@dcloudio/uni-app';
 import user from '../../store/modules/user';
 
 // 底部安全区栏颜色，安卓端
-// #ifdef APP-PLUS
-// var Color = plus.android.importClass('android.graphics.Color');
-// plus.android.importClass('android.view.Window');
-// var mainActivity = plus.android.runtimeMainActivity();
-// var window_android = mainActivity.getWindow();
-// window_android.setNavigationBarColor(Color.parseColor('#2c2d35'));
-var Color = plus.android.importClass('android.graphics.Color');
-plus.android.importClass('android.view.Window');
-var mainActivity = plus.android.runtimeMainActivity();
-var window_android = mainActivity.getWindow();
-var WindowManager = plus.android.importClass('android.view.WindowManager');
-var View = plus.android.importClass('android.view.View');
-//设置为全透明
-window_android.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-window_android.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-window_android.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-window_android.setNavigationBarColor(Color.TRANSPARENT);
-// #endif
+const osName = uni.getSystemInfoSync().osName;
+if (osName == 'android') {
+	// #ifdef APP-PLUS
+	// var Color = plus.android.importClass('android.graphics.Color');
+	// plus.android.importClass('android.view.Window');
+	// var mainActivity = plus.android.runtimeMainActivity();
+	// var window_android = mainActivity.getWindow();
+	// window_android.setNavigationBarColor(Color.parseColor('#2c2d35'));
+	var Color = plus.android.importClass('android.graphics.Color');
+	plus.android.importClass('android.view.Window');
+	var mainActivity = plus.android.runtimeMainActivity();
+	var window_android = mainActivity.getWindow();
+	var WindowManager = plus.android.importClass('android.view.WindowManager');
+	var View = plus.android.importClass('android.view.View');
+	//设置为全透明
+	window_android.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+	window_android.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+	window_android.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+	window_android.setNavigationBarColor(Color.TRANSPARENT);
+	// #endif
+}
 
 const store = useStore();
 const uiState = useState('ui', ['currTabPage', 'zPagingRef', 'notiPagingRef', 'detailPagingRef']);
@@ -134,7 +137,7 @@ function initSocket() {
 		// console.log(data);
 		if (data.type == 'invite') {
 			notiPagingRef.value.addDataFromTop(data);
-			if (tabPage.value !== 'Notification') {
+			if (currTabPage.value !== 'Notification') {
 				store.commit('ui/updateNoticeBadgeNum', 1);
 			}
 		}
@@ -267,6 +270,7 @@ async function insertMsg(msg) {
 		uni.$emit('updateRoomLastMsg', msg);
 	} else {
 		console.log('不存在消息所在的房间，初始化创建房间');
+		console.log(msg);
 		const room = await api.getRoom({
 			id: msg.roomId
 		});
@@ -276,7 +280,7 @@ async function insertMsg(msg) {
 		}, 400);
 	}
 	store.dispatch('message/changeLastMsg', msg);
-	if (tabPage.value !== 'Msg' && msg.creator._id != profile._id) {
+	if (currTabPage.value !== 'Msg' && msg.creator._id != profile._id) {
 		store.commit('ui/updateMsgBadgeNum', 1);
 	}
 }

@@ -1,11 +1,16 @@
 <template>
 	<view class="timeline">
 		<view class="line height-1px"></view>
-		<text class="timeline-date">2018年6月18</text>
+		<text class="timeline-date">{{ formatTime(date, 'yyyy年MM月dd') }}</text>
 	</view>
 </template>
 
-<script setup></script>
+<script setup>
+import { defineProps } from 'vue';
+import { formatTime } from '@/utils/formatTime.js';
+const { date } = defineProps(['date']);
+// const time = ref('')
+</script>
 
 <style lang="scss">
 .timeline {

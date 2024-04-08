@@ -29,6 +29,8 @@ $ChatInputMaxHeight: 324rpx;
 
 // 图标颜色
 $IconWhite: rgb(199, 200, 206);
+$IconRed: rgb(247, 76, 48);
+$IconGreen: rgb(35, 164, 89);
 
 page {
 	font-family: 'Alibaba Health Font 2.0 CN 85 B';
@@ -121,7 +123,33 @@ uni-page-head {
 		text-align: center;
 	}
 }
-
+.h1 {
+	font-size: 36rpx;
+}
+.h2 {
+	font-size: 32rpx;
+}
+.h3 {
+	font-size: 28rpx;
+}
+.h4 {
+	font-size: 26rpx;
+}
+.h5 {
+	font-size: 24rpx;
+}
+.block {
+	display: block;
+}
+.font-grey {
+	color: $FontGrey;
+}
+.font-red {
+	color: $IconRed;
+}
+.font-green {
+	color: $IconGreen;
+}
 // :not(not) {
 // 	font-family: 'sans-serif';
 // 	box-sizing: border-box;

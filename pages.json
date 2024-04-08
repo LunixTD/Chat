@@ -28,9 +28,13 @@
 		{
 			"path": "pages/Main/Main",
 			"style": {
+				"disableScroll": true,
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "",
-				"enablePullDownRefresh": false
+				"enablePullDownRefresh": false,
+				"app-plus": {
+					"bounce": "none"
+				}
 			}
 		},
 		{
@@ -39,7 +43,10 @@
 				"disableScroll": true,
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "",
-				"enablePullDownRefresh": false
+				"enablePullDownRefresh": false,
+				"app-plus": {
+					"bounce": "none"
+				}
 			}
 		},
 		{
@@ -102,7 +109,7 @@
 			"path": "pages/AddFriendType/AddFriendType",
 			"style": {
 				"disableScroll": true,
-				"navigationBarTitleText": "添加好友",
+				"navigationStyle": "custom",
 				"enablePullDownRefresh": false,
 				"navigationBarBackgroundColor": "#1c1d23"
 			}
@@ -149,6 +156,33 @@
 		},
 		{
 			"path": "pages/InitUserInfo/InitUserInfo",
+			"style": {
+				"disableScroll": true,
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/ServerData/ServerData",
+			"style": {
+				"disableScroll": true,
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/VoicePage/VoicePage",
+			"style": {
+				"disableScroll": true,
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/UserConfig/UserConfig",
 			"style": {
 				"disableScroll": true,
 				"navigationStyle": "custom",

@@ -77,7 +77,7 @@
 		</view>
 
 		<!-- 聊天界面防滚动遮罩 -->
-		<view class="roomMask" @touchend.prevent="changeChatroomState('show')" :style="{ zIndex: chatroomState == 'show' ? 0 : 102 }"></view>
+		<view class="roomMask" @touchend.prevent="serverList.length != 0 ? changeChatroomState('show') : null" :style="{ zIndex: chatroomState == 'show' ? 0 : 102 }"></view>
 
 		<!-- 防透底部遮罩，因为原理是右侧界面滑动到左侧，要给个底面，防止过度滑动的时候显示到底部UI界面 -->
 		<view class="leftContentMask" :class="chatroomState == 'show' ? 'show' : 'hide'"></view>
@@ -95,6 +95,7 @@ import api from '@/services/request.js';
 import { useSystemInfo } from '@/utils/hooks/useSystemInfo.js';
 import { asyncUserProfile } from '@/utils/hooks/useAsyncUserProfile.js';
 import Room from './Room.vue';
+import { useState } from '@/store/hooks/useStore.js';
 
 // 禁止默认返回
 // 处理返回
@@ -119,6 +120,7 @@ const { serverList, currServer, currChannel } = chatState;
 const uiState = useState('ui', ['chatroomState', 'bottomModalRef']);
 const { chatroomState, bottomModalRef } = uiState;
 const activeInfo = computed(() => {
+	// console.log(store.state.user.profile.activeInfo);
 	return store.state.user.profile.activeInfo;
 });
 const noServerTag = computed(() => {
@@ -166,14 +168,15 @@ onUpdated(() => {
 async function getServerList() {
 	const profile = uni.getStorageSync('profile');
 	// 获取服务器列表
-	const { data } = await api.getServerList({
-		uid: profile._id
+	const { data } = await api.getUser({
+		id: profile._id
 	});
+	// console.log(data);
 	const serverIdArr = data.serverList.map((item) => {
 		return item._id;
 	});
 
-	await asyncUserProfile('updateLocal', {
+	await asyncUserProfile('updateStorage', {
 		activeServer: data.activeServer,
 		activeChannel: data.activeChannel,
 		activeInfo: data.activeInfo,

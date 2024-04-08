@@ -12,14 +12,14 @@ import { useSystemInfo } from '@/utils/hooks/useSystemInfo.js';
 const popState = ref('hide');
 const popText = ref('');
 const timer = ref(null);
-function showPop(text) {
+function showPop(text, duration) {
 	if (timer.value !== null) return;
 	popText.value = text;
 	popState.value = 'show';
 	timer.value = setTimeout(function () {
 		popState.value = 'hide';
 		timer.value = null;
-	}, 3000);
+	}, duration || 3000);
 }
 defineExpose({ showPop });
 
@@ -43,7 +43,7 @@ const popupContainerStyle = computed(() => {
 	position: fixed;
 	top: 0;
 	left: 0;
-	z-index: 9999;
+	z-index: 99999999;
 	transform: translateY(-20vh);
 	transition: all ease 0.3s;
 	&.show {

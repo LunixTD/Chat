@@ -51,6 +51,9 @@ const headerStyle = useStatusBarHeightStyle(88);
 	justify-content: space-between;
 	font-size: 32rpx;
 	z-index: 99;
+	.left {
+		@include centering;
+	}
 
 	.back {
 		float: left;

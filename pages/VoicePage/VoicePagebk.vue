@@ -9,7 +9,7 @@
 			<image style="voiceAvatarBg" src="../../static/avatar/placed.jpeg" mode="heightFix"></image>
 		</view> -->
 		<view class="content">
-			<view id="voicePageCounter"></view>
+			<view class="globalVoiceCounter">0:00</view>
 
 			<view class="userAvatar" v-if="roomData">
 				<!-- <image :src="api.target_url + roomData.target.avatarInfo.thumb" mode="widthFix"></image> -->
@@ -18,8 +18,8 @@
 			</view>
 			<text class="alert block" v-if="showInfo">由于未知网络问题已断开连接...</text>
 
-			<view class="funcBtn" :class="type == 'sender' || voiceState ? 'show' : 'hide'">
-				<view class="btnBox left" :class="[speakerState ? 'active' : '', voiceState ? 'show' : '']" @click="handleBtn('speaker')">
+			<view class="funcBtn" :class="type == 'sender' || showStateType ? 'show' : 'hide'">
+				<view class="btnBox left" :class="[speakerState ? 'active' : '', showStateType ? 'show' : '']" @click="handleBtn('speaker')">
 					<view class="iconBox">
 						<i class="iconfont" :class="speakerState ? 'icon-yangshengqi-kaiqi' : 'icon-yangshengqi-guanbi'"></i>
 					</view>
@@ -31,14 +31,14 @@
 					</view>
 					<text>挂断</text>
 				</view>
-				<view class="btnBox right" :class="[unMuteState ? 'active' : '', voiceState ? 'show' : '']" @click="handleBtn('unMute')">
+				<view class="btnBox right" :class="[microState ? 'active' : '', showStateType ? 'show' : '']" @click="handleBtn('micro')">
 					<view class="iconBox">
 						<i class="iconfont icon-maikefeng1"></i>
 					</view>
-					<text>{{ unMuteState ? '麦克风已开' : '麦克风已关' }}</text>
+					<text>{{ microState ? '麦克风已开' : '麦克风已关' }}</text>
 				</view>
 			</view>
-			<view class="funcBtn" :class="type == 'receiver' && !voiceState ? 'show' : 'hide'">
+			<view class="funcBtn" :class="type == 'receiver' && !showStateType ? 'show' : 'hide'">
 				<view class="btnBox mid" @click="handleBtn('reject')">
 					<view class="iconBox">
 						<i class="iconfont icon-jujie"></i>
@@ -52,28 +52,8 @@
 					<text>接听</text>
 				</view>
 			</view>
+			<view :media="media" :change:media="webrtc.initMedia"></view>
 		</view>
-
-		<view
-			:webrtcState="webrtcState"
-			:change:webrtcState="webrtc.sendOffer"
-			:roomData="roomData"
-			:change:roomData="webrtc.getRoomData"
-			:role="role"
-			:change:role="webrtc.getRole"
-			:offer="offer"
-			:change:offer="webrtc.sendAnswer"
-			:answer="answer"
-			:change:answer="webrtc.getAnswer"
-			:candidate="candidate"
-			:change:candidate="webrtc.addIceCandidate"
-			:close="close"
-			:change:close="webrtc.closeConnect"
-			:osName="osName"
-			:change:osName="webrtc.getOsName"
-			:unMuteState="unMuteState"
-			:change:unMuteState="webrtc.changeMuteState"
-		></view>
 	</view>
 </template>
 
@@ -86,21 +66,20 @@ export default {
 			type: '',
 			target: null,
 			roomId: null,
-			roomData: null,
-			webrtcState: 'pending',
 			role: '',
 			offer: null,
 			answer: null,
 			candidate: null,
 			speakerState: false,
-			voiceState: false,
+			showStateType: false,
 			microState: true,
-			close: null,
 			connectState: null,
 			api: api,
 			showInfo: false,
 			osName: null,
-			unMuteState: true
+			stream: null,
+			peer: null,
+			media: null
 		};
 	},
 	onBackPress(e) {
@@ -133,35 +112,35 @@ export default {
 		const { type, params } = e;
 		this.type = type;
 		this.roomData = JSON.parse(params);
+		this.initWebRTC();
 		if (type == 'sender') {
-			this.voiceState = true;
+			this.showStateType = true;
 		}
-		let that = this;
 		uni.getSystemInfo({
 			success(res) {
-				that.osName = res.osName;
+				this.osName = res.osName;
 			}
 		});
 
 		this.$socket.on('offer', (offer) => {
 			console.log('offer');
-			this.offer = offer;
+			this.sendAnswer(offer);
 		});
 		this.$socket.on('answer', (answer) => {
 			console.log('answer');
-			this.answer = answer;
+			this.getAnswer(answer);
 		});
 		this.$socket.on('candidate', (candidate) => {
 			console.log('candidate');
-			this.candidate = candidate;
+			this.addIceCandidate(candidate);
 		});
 
 		uni.$on('startVoice', (role) => {
 			this.role = role;
-			this.webrtcState = 'start';
+			this.sendOffer();
 		});
 		uni.$on('closeVoicePage', () => {
-			this.close = true;
+			this.closeConnect();
 		});
 	},
 	methods: {
@@ -193,12 +172,11 @@ export default {
 						}
 					});
 					// 接听后ui变化
-					this.voiceState = true;
-					// this.webrtcState = 'start';
+					this.showStateType = true;
 					break;
 				case 'handup':
 					// 挂断
-					this.close = true;
+					this.closeConnect();
 					// 给对方发送挂断信息
 					let state = '';
 					if (this.connectState == null) {
@@ -218,89 +196,18 @@ export default {
 					this[key + 'State'] = !this[key + 'State'];
 			}
 		},
-		updateConnectState(state) {
-			this.connectState = state;
+		initMedia() {
+			this.media = 'start';
 		},
-		leaveVoicePage() {
-			// 在清理完音轨后
-			uni.navigateBack();
-		},
-		changeShowInfo() {
-			this.showInfo = true;
-		}
-	}
-};
-</script>
-<script module="webrtc" lang="renderjs">
-import { formatTime } from '../../utils/formatTime.js';
-export default {
-	data() {
-		return {
-			peer: null,
-			roomData: null,
-			role: '',
-			audio: null,
-			stream: null,
-			tmpCandidate: null,
-			osName: null,
-			time: 0,
-			mins: 0,
-			secs: 0,
-			tmpSec: 0,
-		};
-	},
-	beforeUnmount() {
-		this.closeConnect();
-	},
-	watch: {
-		tmpSec() {
-			this.secs = this.secs + 1000
-			// if (this.secs == 59) {
-			// 	this.mins = this.mins + 1;
-			// }
-			// this.secs = this.secs > 58 ? 0 : this.secs + 1;
-		}
-	},
-	methods: {
-		async getRoomData(data) {
-			if (!data) return;
-			this.roomData = data;
-			await this.initWebRTC();
-		},
-		getRole(role) {
-			if (!role) return;
-			this.role = role;
-		},
-		getOsName(osName) {
-			// console.log(osName)
-			if (!osName) return;
-			this.osName = osName;
-		},
-		// 静音切换
-		changeMuteState(state) {
-			if (!this.stream) return
-			this.stream.getTracks().forEach((track) => {
-				track.enabled = state;
-			})
-		},
-		async initMedia() {
-			// return
-			// 音视频通话
-			// console.log(navigator.userAgent)
-			this.stream = await navigator.mediaDevices
-				.getUserMedia({
-					audio: true
-				})
-				.catch((err) => {
-					console.log('抛出错误,需要全局捕获');
-					return Promise.reject(err);
-				});
+		getMedia(stream) {
+			console.log(stream);
+			this.stream = stream;
 			this.stream.getTracks().forEach((track) => {
 				this.peer.addTrack(track, this.stream);
 			});
 		},
-		async initWebRTC(rtcState) {
-			// return
+		async initWebRTC() {
+			// return;
 			// const PeerConnection = window.mozRTCPeerConnection || window.webkitRTCPeerConnection
 			// const rtcConfig = {
 			// 	iceServers: [
@@ -312,15 +219,15 @@ export default {
 
 			// 监听推流
 			this.peer.ontrack = (e) => {
+				// console.log(e.streams[0])
 				this.createAudio(e.streams[0]);
 			};
 			// 监听连接状态的变化
 			this.peer.onconnectionstatechange = (e) => {
 				// console.log(this.peer.connectionState)
-				this.$ownerInstance.callMethod('changeConnectState', this.peer.connectionState);
 				switch (this.peer.connectionState) {
 					case 'disconnected':
-						this.$ownerInstance.callMethod('changeShowInfo');
+						this.changeShowInfo();
 						break;
 				}
 			};
@@ -333,10 +240,7 @@ export default {
 			this.peer.onicecandidate = (e) => {
 				// console.log("这是candidate数据："+e.candidate)
 				if (e.candidate && e.candidate !== null) {
-					this.$ownerInstance.callMethod('socketEmit', {
-						eventName: 'candidate',
-						emitData: { targetId: this.roomData.target._id, candidate: e.candidate }
-					});
+					this.$socket.emit('candidate', { targetId: this.roomData.target._id, candidate: e.candidate });
 				}
 			};
 
@@ -344,45 +248,36 @@ export default {
 			// 	await this.sendOffer();
 			// }
 		},
-		async sendOffer(rtcState) {
-			if (this.roomData == null || rtcState !== 'start') return;
+		async sendOffer() {
+			if (this.roomData == null) return;
 			await this.initMedia();
 			// 创建offer
 			let offer = await this.peer.createOffer();
 			// 将offer导入本地描述中
 			await this.peer.setLocalDescription(offer);
 			// 将本机offer通过信令传递给远端
-			this.$ownerInstance.callMethod('socketEmit', {
-				eventName: 'offer',
-				emitData: { targetId: this.roomData.target._id, offer }
-			});
+			this.$socket.emit('offer', { targetId: this.roomData.target._id, offer });
 		},
 		// 返回媒体协商数据
 		async sendAnswer(offer) {
-			if (!offer) return;
 			await this.initMedia();
 			await this.peer.setRemoteDescription(offer);
 			this.peer.addIceCandidate(this.tmpCandidate);
 			// console.log('---offer'+ new Date().getTime())
 			const answer = await this.peer.createAnswer();
 			await this.peer.setLocalDescription(answer);
-			this.$ownerInstance.callMethod('socketEmit', {
-				eventName: 'answer',
-				emitData: {
-					targetId: this.roomData.target._id,
-					answer
-				}
+			this.$socket.emit('answer', {
+				targetId: this.roomData.target._id,
+				answer
 			});
 		},
 		// 将远端发送来的媒体协商数据设置到远端描述中
 		async getAnswer(answer) {
-			if (!answer) return;
 			await this.peer.setRemoteDescription(answer);
 			// console.log(this.tmpCandidate)
 		},
 		// 添加候选源，建立最后的连接
 		addIceCandidate(candidate) {
-			if (!candidate) return;
 			// console.log('---candidate'+ new Date().getTime())
 			if (this.role != 'sender') {
 				this.tmpCandidate = candidate;
@@ -392,52 +287,84 @@ export default {
 		},
 		// 创建audio组件,监听语音时长等
 		createAudio(stream) {
-			// ios端时间获取有问题，使用本地计时
-			this.timer = 0;
 			this.audio = document.createElement('audio');
-			this.audio.setAttribute('autoplay', false);
-			this.audio.volume = 0.1;
-			this.audio.onloadeddata = () => {
+			this.audio.setAttribute('autoplay', true);
+			this.audio.onloadedmetadata = () => {
 				this.audio.play();
 			};
-			this.audio.ontimeupdate = (e) => {
-				const counter = document.getElementById('voicePageCounter');
-				let currTime = this.audio.currentTime;
-
-				let tmpTime = Math.floor(currTime * 1000);
-
-				this.tmpSec = parseInt(formatTime(currTime * 1000, 'ss'));
-				counter.innerText = formatTime(this.secs, 'mm:ss')
+			this.audio.ontimeupdate = () => {
+				console.log(this.audio.currentTime);
 			};
 			this.audio.srcObject = stream;
-			// // #ifdef APP
-
-			// const player = plus.audio.createPlayer(URL.createObjectURL(this.stream))
-			// console.log(player)
-			// player.play(function() {
-			// 	console.log(3234)
-			// }, function() {
-
-			// })
-			// // #endif
 		},
 		// 关闭连接并清空音轨和数据流
-		closeConnect(close) {
-			if (!close) return;
-			if (close == true) {
-				if (this.audio) {
-					this.peer.close();
-					// this.audio.pause()
-					this.audio = null;
-					// this.audio.srcObject = null;
-					this.stream.getTracks().forEach((track) => {
-						track.stop();
-					});
-					this.stream = null;
-				}
-				this.$ownerInstance.callMethod('leaveVoicePage');
+		closeConnect() {
+			if (this.audio) {
+				this.peer.close();
+				// this.audio.pause()
+				// this.audio.srcObject = null;
+				this.stream.getTracks().forEach((track) => {
+					track.stop();
+				});
+				this.stream = null;
 			}
+			uni.navigateBack();
 		},
+		updateConnectState(state) {
+			this.connectState = state;
+		},
+		changeShowInfo() {
+			this.showInfo = true;
+		}
+	}
+};
+</script>
+<script module="webrtc" lang="renderjs">
+export default {
+	data() {
+		return {
+			// peer: null,
+			roomData: null,
+			role: '',
+			audio: null,
+			// stream: null,
+			tmpCandidate: null,
+			osName: null
+		};
+	},
+	beforeUnmount() {
+		this.closeConnect()
+	},
+	methods: {
+		initMedia(media) {
+			if (media == null) return
+			const stream = navigator.mediaDevices.getUserMedia({
+				audio: true
+			}).catch((err) => {
+					console.log('抛出错误,需要全局捕获');
+					return Promise.reject(err);
+				});
+				this.$ownerInstance.callMethod('getMedia', stream)
+		}
+		// async getRoomData(data) {
+		// 	if (!data) return;
+		// 	this.roomData = data;
+		// 	await this.initWebRTC();
+		// },
+		// getRole(role) {
+		// 	if (!role) return;
+		// 	this.role = role;
+		// },
+		// getOsName(osName) {
+		// 	// console.log(osName)
+		// 	if (!osName) return
+		// 	this.osName = osName
+		// },
+
+
+
+
+
 	}
 };
 </script>
@@ -479,7 +406,7 @@ export default {
 	flex-direction: column;
 	text-align: center;
 }
-#voicePageCounter {
+.globalVoiceCounter {
 	position: absolute;
 	top: 100rpx;
 	width: 100vw;

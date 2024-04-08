@@ -3,13 +3,15 @@ import {
 } from 'vue';
 import {
 	useStore,
-	mapGetters
+	createNamespacedHelpers
 } from 'vuex';
 
-export default function useGetters(mapper) {
+export function useState(module, mapper) {
+	const {
+		mapState
+	} = createNamespacedHelpers(module)
 	const store = useStore()
-	const fns = mapGetters(mapper)
-
+	const fns = mapState(mapper)
 	const storeState = {}
 	Object.keys(fns).forEach(fnkey => {
 		const fn = fns[fnkey].bind({

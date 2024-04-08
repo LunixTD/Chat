@@ -11,6 +11,6 @@ const statusBarBoxStyle = useStatusBarHeightStyle();
 <style lang="scss">
 .statusBarBox {
 	width: 100vw;
-	background-color: red;
+	background-color: $ThemeDark3Color;
 }
 </style>

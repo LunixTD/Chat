@@ -1,7 +1,14 @@
 <template>
+	<MyPopup ref="pop"></MyPopup>
 	<view class="container">
+		<Header>
+			<template #middle>
+				<view class="headerMiddle">添加好友</view>
+			</template>
+		</Header>
+		<HeaderPlaced></HeaderPlaced>
 		<view class="addType">
-			<view class="typeItem" v-for="({ icon, text }, index) in addType" :key="index">
+			<view class="typeItem" v-for="({ icon, text }, index) in addType" @click="handleShare(icon)" :key="index">
 				<i class="iconfont" :class="'icon-addfriend-' + icon"></i>
 				<text class="type-text">{{ text }}</text>
 			</view>
@@ -26,6 +33,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { onNavigationBarButtonTap } from '@dcloudio/uni-app';
 import variable from '@/styles/variable.js';
 
@@ -70,6 +78,26 @@ const customStyle = {
 	padding: '20rpx 30rpx',
 	textAlign: 'center'
 };
+const pop = ref(null);
+
+function handleShare(type) {
+	switch (type) {
+		case 'share':
+			plus.share.sendWithSystem(
+				{ type: 'text', content: '分享内容', href: 'http://www.lunixtd.cn' },
+				function () {
+					console.log('分享成功');
+				},
+				function (e) {
+					console.log('分享失败：' + JSON.stringify(e));
+				}
+			);
+			break;
+		case 'link':
+			pop.value.showPop('已将分享复制到剪贴板');
+			break;
+	}
+}
 </script>
 
 <style lang="scss">
@@ -78,6 +106,11 @@ const customStyle = {
 	height: 100%;
 	padding: 0 30rpx;
 	background-color: $ThemeDark3Color;
+
+	.headerMiddle {
+		@include centering;
+		height: 100%;
+	}
 
 	// 添加类型
 	.addType {

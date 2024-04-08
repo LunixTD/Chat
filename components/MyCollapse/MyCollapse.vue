@@ -15,8 +15,11 @@
 
 <script setup>
 import { computed, defineProps, ref, onUpdated } from 'vue';
-const { initState, sortId } = defineProps(['initState', 'sortId']);
+import { asyncUserProfile } from '@/utils/hooks/useAsyncUserProfile.js';
 import { useStore } from 'vuex';
+import { throttle } from 'lodash';
+
+const { initState, sortId } = defineProps(['initState', 'sortId']);
 const store = useStore();
 const showCollapse = ref(initState);
 const serverList = computed(() => {
@@ -25,13 +28,16 @@ const serverList = computed(() => {
 const currServer = computed(() => {
 	return store.state.chat.currServer;
 });
+const channelTypeStateChangeCounter = computed(() => {
+	return store.state.ui.channelTypeStateChangeCounter;
+});
 
 const customStyle = {
-	// backgroundColor: 'rgb(56, 58, 67, 1)'
+	backgroundColor: 'rgb(28,29,35)'
 };
 const touchStyle = {
-	transform: 'scale(0.97)'
-	// backgroundColor: 'rgba(87, 90, 99, 1)'
+	transform: 'scale(0.97)',
+	backgroundColor: 'rgba(28,29,35, 1)'
 };
 
 function toggleCollapse() {
@@ -40,29 +46,26 @@ function toggleCollapse() {
 }
 
 // 整理本地的sort项活动记录
-function updateActiveInfo() {
-	store.commit('ui/runTypeChangeCounter');
+const updateActiveInfo = throttle(() => {
+	// store.commit('ui/runTypeChangeCounter');
 	let profile = uni.getStorageSync('profile');
-	// if (profile.activeInfo == undefined) {
-	// 	let activeInfo = {};
-	// 	serverList.value.forEach((server) => {
-	// 		server.channelSortList.forEach((sortItem) => {
-	// 			if (sortItem._id == sortId) {
-	// 				activeInfo[sortItem._id] = showCollapse.value;
-	// 			} else {
-	// 				activeInfo[sortItem._id] = true;
-	// 			}
-	// 		});
+
+	// if ((channelTypeStateChangeCounter.value / 10) % 1 == 0) {
+	// 	profile.activeInfo[currServer.value._id][sortId] = showCollapse.value;
+	// 	asyncUserProfile('updateProfile', {
+	// 		activeInfo: profile.activeInfo
 	// 	});
-	// 	profile.activeInfo = activeInfo;
 	// } else {
 	// 	profile.activeInfo[sortId] = showCollapse.value;
+	// 	asyncUserProfile('updateLocal', {
+	// 		activeInfo: profile.activeInfo
+	// 	});
 	// }
-
 	profile.activeInfo[currServer.value._id][sortId] = showCollapse.value;
-	uni.setStorageSync('profile', profile);
-	store.dispatch('user/changeProfile', profile);
-}
+	asyncUserProfile('updateProfile', {
+		activeInfo: profile.activeInfo
+	});
+}, 1000);
 </script>
 
 <style lang="scss">

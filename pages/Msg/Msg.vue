@@ -5,10 +5,10 @@
 		<view class="titleBox" :style="titleBoxStyle" :class="isSearching ? 'searching' : ''">
 			<text>消息</text>
 			<view class="titleRightBox">
-				<view class="friendme friend">
+				<!-- <view class="friendme friend">
 					<i class="iconfont icon-ask"></i>
 					<text>1</text>
-				</view>
+				</view> -->
 				<view class="addfriend friend" @click="gotoPage('AddFriendType')">
 					<i class="iconfont icon-my"></i>
 					<text>添加好友</text>
@@ -25,7 +25,7 @@
 			<i class="iconfont icon-server-conf iconhide"></i>
 		</view>
 		<!-- 消息列表 -->
-		<z-paging ref="paging" v-model="dataList" @query="getRooms" class="msgContent" :paging-style="msgContentStyle" :class="isSearching ? 'hide' : ''">
+		<z-paging ref="paging" v-model="dataList" @query="getRoomList" class="msgContent" :paging-style="msgContentStyle" :class="isSearching ? 'hide' : ''">
 			<view class="msg-list">
 				<view
 					v-for="(item, index) in dataList"
@@ -34,8 +34,8 @@
 					:class="getRippleClass(index)"
 					@touchstart="showRipple(index)"
 					@touchend="hideRipple(index)"
-					@tap="gotoDetail(item)"
-					@longpress="showDetailModal(index)"
+					@click="gotoDetail(item)"
+					@longpress="onLongPress(index)"
 				>
 					<view class="ripple"></view>
 					<view class="avatarBox">
@@ -55,6 +55,11 @@
 							</view>
 						</view>
 					</view>
+					<view class="mask" :class="(activeIndex == index && maskState) == 'show' ? 'show' : 'hide'" @click.stop="changeMaskState('hide')">
+						<view class="delBtn" @click.stop="handleDel(item, index)">
+							<text>删除</text>
+						</view>
+					</view>
 				</view>
 			</view>
 			<template #loadingMoreNoMore>
@@ -63,7 +68,7 @@
 			<template #empty>
 				<view class="empty">
 					<image class="emptyImg" src="../../static/bg/noServer-bg.png" mode="widthFix"></image>
-					<text class="h1">这里被打扫的很干净~</text>
+					<text class="h1">暂无任何消息</text>
 				</view>
 			</template>
 		</z-paging>
@@ -242,6 +247,7 @@ const showRipple = throttle((index) => {
 	// if (isScrolling.value) {
 	// 	return false;
 	// }
+	if (maskState.value == 'show') return;
 	rippleHover.value = true;
 	currRippleIndex.value = index;
 	rippleAnimeTimer.value = setTimeout(() => {
@@ -265,11 +271,36 @@ const hideRipple = throttle((index) => {
 	}
 }, 300);
 
-function showDetailModal(index) {
+// 长按时的遮罩和相关处理
+const maskState = ref('hide');
+const activeIndex = ref(null);
+function onLongPress(index) {
+	activeIndex.value = index;
 	if (!isScrolling.value) {
 		touchFeedback();
+		changeMaskState('show');
 	}
 	// alert(index);
+}
+function changeMaskState(state) {
+	maskState.value = state;
+}
+// 删除操作
+async function handleDel(item, index) {
+	const delRes = await api.deleteRoom({
+		roomId: item._id,
+		uid: profile._id
+	});
+	if (delRes.statusCode == 200) {
+		console.log('房间删除成功!');
+		changeMaskState('hide');
+		// console.log(delRes);
+		await asyncUserProfile('updateLocal', {
+			roomList: delRes.data.roomList
+		});
+		// console.log(delRes.data.roomList);
+		getRoomFromDataList(item._id, 'slice');
+	}
 }
 
 // 去消息详情页面
@@ -291,8 +322,9 @@ const paging = ref(null);
 const profile = uni.getStorageSync('profile');
 
 // 获取私聊房间列表
-async function getRooms() {
-	const resData = await api.getRoomList({ uid: profile._id });
+async function getRoomList() {
+	const resData = await api.getRoomList({ roomList: uni.getStorageSync('profile').roomList });
+	// const resData = await api.getRoomList({ uid: profile._id });
 
 	if (resData.statusCode == 200) {
 		// console.log(resData);
@@ -369,6 +401,7 @@ onMounted(() => {
 	});
 });
 
+// 根据id和操作类型获取到消息列表的某个消息,以便更新和删改操作
 function getRoomFromDataList(roomId, actionType) {
 	let tmpData = {};
 	dataList.value.forEach((item, index) => {
@@ -721,6 +754,38 @@ function getRoomFromDataList(roomId, actionType) {
 					}
 				}
 			}
+
+			.mask {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background-color: rgba(0, 0, 0, 0.9);
+				@include centering;
+				z-index: -1;
+				transition: opacity ease 0.18s;
+				&.show {
+					opacity: 1;
+					z-index: 10;
+				}
+				&.hide {
+					opacity: 0;
+					z-index: -1;
+				}
+				.delBtn {
+					@include centering;
+					font-size: 32rpx;
+					padding: 20rpx 30rpx;
+					width: 200rpx;
+					height: 88rpx;
+					letter-spacing: 20rpx;
+					text-indent: 20rpx;
+					background-color: $IconRed;
+					border-radius: 44rpx;
+					color: $FontWhite;
+				}
+			}
 		}
 	}
 }
@@ -802,8 +867,8 @@ function getRoomFromDataList(roomId, actionType) {
 	text-align: center;
 	color: $FontGrey;
 	.emptyImg {
-		margin-top: -100rpx;
-		width: 40vh;
+		margin-top: -120rpx;
+		width: 30vh;
 		display: block;
 	}
 }

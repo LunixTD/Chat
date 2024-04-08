@@ -1,5 +1,6 @@
 <template>
 	<view class="scrollContainer" @touchstart="msgContainerFocus" :style="{ transition: 'transform ease 0.3s', transform: 'translateY(-' + raiseHeight + 'rpx)' }">
+		<LoadingPlaced :showLoadingPlaced="showLoadingPlaced"></LoadingPlaced>
 		<z-paging
 			ref="paging"
 			v-model="dataList"
@@ -11,6 +12,7 @@
 			safe-area-inset-bottom
 			bottom-bg-color="#f8f8f8"
 			:refresher-end-bounce-enabled="false"
+			:auto-hide-loading-after-first-loaded="false"
 			@loadingStatusChange="loadingStatusChange"
 			@query="getHistoryMsg"
 		>
@@ -21,14 +23,13 @@
 			<template #top>
 				<view class="headerBox" :style="headerStyle"></view>
 			</template>
-
-			<view class="marginBox"></view>
 			<view id="lastBox" :style="lastBoxStyle"></view>
 			<!-- 底部聊天输入框 -->
 			<template #bottom>
 				<view class="bottomBox" :style="lastBoxStyle"></view>
 			</template>
 		</z-paging>
+		<view class="loadingPlaced" :style="loadingPlacedStyle"></view>
 	</view>
 </template>
 
@@ -43,14 +44,16 @@ import { debounce, throttle } from 'lodash';
 import { useStatusBarHeightStyle } from '@/utils/hooks/useStatusBarHeightStyle.js';
 import api from '@/services/request.js';
 import MsgBottomBox from '@/pages/MsgDetail/MsgBottomBox.vue';
+import variable from '@/styles/variable.js';
 
 const { origin, sendToId } = defineProps(['origin', 'sendToId']);
 const store = useStore();
 const dataList = ref([]);
+const showLoadingPlaced = ref(false);
 const currChannel = computed(() => {
 	return store.state.chat.currChannel;
 });
-const headerStyle = useStatusBarHeightStyle(88);
+const headerStyle = useStatusBarHeightStyle(variable.headerHeight);
 const canUsePushAnime = computed(() => {
 	return store.state.ui.canUsePushAnime;
 });
@@ -72,7 +75,12 @@ const canloadHistory = computed(() => {
 const safeAreaBottom = useSystemInfo('safeAreaInsets').value.bottom;
 const lastBoxStyle = computed(() => {
 	return {
-		height: `${safeAreaBottom + 88}rpx`
+		height: `${safeAreaBottom + variable.headerHeight}rpx`
+	};
+});
+const loadingPlacedStyle = computed(() => {
+	return {
+		// bottom: `${safeAreaBottom + 88}rpx`
 	};
 });
 
@@ -98,6 +106,9 @@ onMounted(() => {
 	} else {
 		store.commit('ui/setDetailPagingRef', instance.refs.paging);
 	}
+	uni.$on('showLoadingState', (bool) => {
+		showLoadingPlaced.value = bool;
+	});
 });
 
 function getMsgStyle(msgIndex) {
@@ -156,6 +167,7 @@ function getHistoryMsg(pageNo, pageSize) {
 		store.dispatch('message/updateChannelMsgList', newDataArr);
 		// console.log(newDataArr);
 		instance.refs.paging.complete(newDataArr);
+		showLoadingPlaced.value = false;
 		// if (newDataArr.length == 0 || newDataArr.length < num) {
 		// 	firstView.value = true;
 		// }

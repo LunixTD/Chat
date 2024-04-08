@@ -78,8 +78,11 @@ export default {
 				}
 			}
 			if (osName == 'ios') {
+				const recordManager = uni.getRecorderManager();
+				recordManager.start();
+				recordManager.stop();
 				const result = permision.judgeIosPermission('record');
-				if (result) {
+				if (result == true) {
 					hasPermission = true;
 				}
 			}

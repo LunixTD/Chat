@@ -14,8 +14,10 @@
     "style-loader": "^3.3.4"
   },
   "dependencies": {
+    "@hyoga/uni-socket.io": "^3.0.4",
     "lodash": "^4.17.21",
     "socket.io-client": "^4.7.4",
+    "vconsole": "^3.15.1",
     "vuex": "^4.0.2"
   }
 }

@@ -1,16 +1,67 @@
 <template>
-	<view class="touchBox" :style="[touch == '' ? touchStartStyle : touchEndStyle, customStyle]" @touchstart="touchStart" @touchend="touchEnd">
+	<view class="touchBox" :class="renderType == 'btn' ? 'btn' : ''" :style="[touch == '' ? startStyle : endStyle, customStyle]" @touchstart="touchStart" @touchend="touchEnd">
 		<slot></slot>
 	</view>
 </template>
 
 <script setup>
 import { defaults } from 'lodash';
-import { ref, defineProps } from 'vue';
+import { ref, defineProps, computed, render, nextTick } from 'vue';
+import variable from '@/styles/variable.js';
 const touch = ref('');
 const timer = ref(null);
 const touching = ref(false);
-const { customStyle, touchStartStyle, touchEndStyle, goto } = defineProps(['customStyle', 'touchStartStyle', 'touchEndStyle', 'goto']);
+const { customStyle, touchStartStyle, touchEndStyle, renderType, color } = defineProps(['customStyle', 'touchStartStyle', 'touchEndStyle', 'renderType', 'color']);
+const { BtnPrimaryColor, BtnPrimaryPressColor } = variable;
+
+let tmpColor = '';
+let tmpPressColor = '';
+switch (color) {
+	case 'red':
+		tmpColor = variable.red;
+		tmpPressColor = variable.redDark;
+		break;
+	case 'grey':
+		tmpColor = variable.grey;
+		tmpPressColor = variable.greyLight;
+		break;
+	default:
+		tmpColor = BtnPrimaryColor;
+		tmpPressColor = BtnPrimaryPressColor;
+		break;
+}
+const initStartStyle = computed(() => {
+	let tmpBgColor = null;
+	if (renderType == 'btn') {
+		tmpBgColor = tmpColor;
+	} else if (renderType == 'listItem') {
+		tmpBgColor = variable.ThemeDarkPop;
+	}
+	return {
+		backgroundColor: tmpBgColor
+	};
+});
+const initEndStyle = computed(() => {
+	let tmpBgPressColor = null;
+	let scaleNum = 1;
+	if (renderType == 'btn') {
+		scaleNum = 0.97;
+		tmpBgPressColor = tmpPressColor;
+	} else if (renderType == 'listItem') {
+		tmpBgPressColor = variable.listItemPressBg;
+	}
+	return {
+		backgroundColor: tmpBgPressColor,
+		transform: `scale(${scaleNum})`
+	};
+});
+const startStyle = computed(() => {
+	return touchStartStyle != undefined ? touchStartStyle : initStartStyle.value;
+});
+const endStyle = computed(() => {
+	return touchEndStyle != undefined ? touchEndStyle : initEndStyle.value;
+});
+
 function touchStart() {
 	if (timer.value !== null) {
 		return;
@@ -25,16 +76,12 @@ function touchStart() {
 	}, 300);
 }
 function touchEnd() {
-	touching.value = false;
-	if (timer.value === null) {
-		touch.value = '';
-	}
-	if (goto !== undefined) {
-		// uni.navigateTo({
-		// 	url: '/pages/SearchFriend/SearchFriend',
-		// 	animationType: 'zoom-fade-out'
-		// });
-	}
+	nextTick(() => {
+		touching.value = false;
+		if (timer.value === null) {
+			touch.value = '';
+		}
+	});
 }
 </script>
 <script>
@@ -47,14 +94,17 @@ export default {
 <style lang="scss">
 .touchBox {
 	width: 100%;
-	// height: 80rpx;
-	// line-height: 40rpx;
-	// border-radius: 40rpx;
-	font-size: 26rpx;
-	// background-color: rgb(56, 58, 67, 1);
-	// padding: 20rpx 30rpx;
-	// text-align: center;
 	transition: all ease 0.2s;
+}
+.btn {
+	height: 80rpx;
+	// line-height: 40rpx;
+	border-radius: 40rpx;
+	font-size: 26rpx;
+	background-color: $ThemePrimaryColor;
+	padding: 0 30rpx;
+	// text-align: center;
 	overflow: hidden;
+	@include centering;
 }
 </style>

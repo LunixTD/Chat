@@ -1,13 +1,13 @@
 <template>
 	<view class="msgListItemContainer" :class="msgDisplayType == 'additionMsg' ? 'margin' : ''">
-		<MsgTimeline v-if="item.showDateLine"></MsgTimeline>
+		<MsgTimeline v-if="item.showDateLine" :date="createTime"></MsgTimeline>
 		<view class="msgBox">
 			<view class="msg-left" v-if="msgDisplayType == 'newMsg'">
 				<image class="msg-avatar" v-if="creator.avatarInfo" :src="api.target_url + creator.avatarInfo.thumb" mode="widthFix"></image>
 				<text class="msg-avatar-text" v-if="!creator.avatarInfo">{{ creator.nickname.substring(0, 1) }}</text>
 			</view>
-			<view class="msg-right" @longpress="showModal">
-				<view class="first-msg" v-if="msgDisplayType == 'newMsg'">
+			<view class="msg-right">
+				<view class="first-msg" v-if="msgDisplayType == 'newMsg'" @longpress="handleMsgPress(item)">
 					<TouchBox :touchStartStyle="customStyle" :touchEndStyle="touchStyle">
 						<view class="u-info">
 							<text class="uname">{{ creator.nickname }}</text>
@@ -20,7 +20,7 @@
 					</TouchBox>
 				</view>
 				<view class="addition-msg-list" v-if="msgDisplayType == 'newMsg'">
-					<view class="addition-msg" v-for="(addMsgItem, addMsgIndex) in additionMsg" :key="addMsgItem._id">
+					<view class="addition-msg" v-for="(addMsgItem, addMsgIndex) in additionMsg" :key="addMsgItem._id" @longpress="handleMsgPress(addMsgItem)">
 						<TouchBox :touchStartStyle="customStyle" :touchEndStyle="touchStyle">
 							<TextMsg :item="addMsgItem" v-if="addMsgItem.type == 'text'"></TextMsg>
 							<ImageMsg :item="addMsgItem" :msgIndex="msgIndex" v-if="addMsgItem.type == 'image'"></ImageMsg>
@@ -28,7 +28,7 @@
 						</TouchBox>
 					</view>
 				</view>
-				<view class="addition-msg" v-if="msgDisplayType == 'additionMsg'">
+				<view class="addition-msg" v-if="msgDisplayType == 'additionMsg'" @longpress="handleMsgPress(item)">
 					<TouchBox :touchStartStyle="customStyle" :touchEndStyle="touchStyle">
 						<TextMsg :item="item" v-if="type == 'text'"></TextMsg>
 						<ImageMsg :item="item" :msgIndex="msgIndex" v-if="type == 'image'"></ImageMsg>
@@ -44,11 +44,13 @@
 import MsgTimeline from './MsgTimeline.vue';
 import { defineProps, computed, ref, onMounted, watch } from 'vue';
 import { touchFeedback, formatTime } from '@/utils/tools.js';
+import { useStore } from 'vuex';
 import api from '@/services/request.js';
 import TextMsg from './TextMsg.vue';
 import ImageMsg from './ImageMsg.vue';
 import VoiceMsg from './VoiceMsg.vue';
 
+const store = useStore();
 const { item, msgIndex, msgStyle } = defineProps(['item', 'msgIndex', 'msgStyle']);
 const { uid, creator, createTime, type, msgDisplayType, additionMsg } = item;
 
@@ -59,6 +61,9 @@ const touchStyle = {
 	// transform: 'scale(0.99)',
 	backgroundColor: 'rgba(255, 255, 255, 0.09)'
 };
+const myPopupRef = computed(() => {
+	return store.state.ui.myPopupRef;
+});
 
 function getRenderIf(name) {
 	let renderBool = false;
@@ -84,8 +89,15 @@ function getRenderIf(name) {
 	return renderBool;
 }
 
-function showModal() {
+function handleMsgPress(item) {
 	touchFeedback();
+	uni.setClipboardData({
+		data: item.content,
+		success() {
+			uni.hideToast();
+			myPopupRef.value.showPop('已复制内容', 1000);
+		}
+	});
 }
 </script>
 
@@ -156,7 +168,7 @@ export default {
 				@include centering;
 				justify-content: flex-start;
 				font-size: 24rpx;
-				line-height: 44rpx;
+				line-height: 50rpx;
 				padding-left: 120rpx;
 
 				.uname {

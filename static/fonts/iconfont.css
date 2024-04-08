@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 1916880 */
-  src: url('iconfont.woff2?t=1709547124060') format('woff2'),
-       url('iconfont.woff?t=1709547124060') format('woff'),
-       url('iconfont.ttf?t=1709547124060') format('truetype');
+  src: url('iconfont.woff2?t=1711885548222') format('woff2'),
+       url('iconfont.woff?t=1711885548222') format('woff'),
+       url('iconfont.ttf?t=1711885548222') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,58 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-dengchu:before {
+  content: "\ee15";
+}
+
+.icon-liaotian:before {
+  content: "\e60e";
+}
+
+.icon-chat:before {
+  content: "\e76d";
+}
+
+.icon-jujie:before {
+  content: "\e622";
+}
+
+.icon-yangshengqi-guanbi:before {
+  content: "\e67e";
+}
+
+.icon-yangshengqi-kaiqi:before {
+  content: "\e67d";
+}
+
+.icon-guaduan:before {
+  content: "\e63b";
+}
+
+.icon-tongji:before {
+  content: "\e651";
+}
+
+.icon-more:before {
+  content: "\e628";
+}
+
+.icon-kongshuju:before {
+  content: "\e602";
+}
+
+.icon-taolun:before {
+  content: "\e60d";
+}
+
+.icon-yuyin1:before {
+  content: "\e6e0";
+}
+
+.icon-taolun1:before {
+  content: "\e95e";
 }
 
 .icon-xiangji2:before {
@@ -23,10 +75,6 @@
 
 .icon-luyin:before {
   content: "\e766";
-}
-
-.icon-shengbo2:before {
-  content: "\e604";
 }
 
 .icon-voice-pause:before {
